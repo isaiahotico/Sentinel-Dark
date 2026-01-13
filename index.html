@@ -1,35 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Telegram Chat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>Reward Ads System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Telegram WebApp SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- ✅ MONETAG SDK -->
+<script src='//libtl.com/sdk.js'
+        data-zone='10276123'
+        data-sdk='show_10276123'></script>
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json" />
+<style>
+body{
+  margin:0;
+  background:#0f172a;
+  font-family:Arial,Helvetica,sans-serif;
+  color:#fff;
+}
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="style.css" />
+.container{
+  max-width:420px;
+  margin:40px auto;
+  padding:18px;
+}
+
+.ad-box{
+  background:#020617;
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 0 22px rgba(0,0,0,.45);
+}
+
+.ad-title{
+  font-size:13px;
+  color:#38bdf8;
+  margin-bottom:6px;
+}
+
+.ad-text{
+  font-size:15px;
+  line-height:1.45;
+  color:#e5e7eb;
+}
+
+.ads-btn{
+  margin-top:16px;
+  width:100%;
+  padding:15px;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  color:#000;
+  font-size:17px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.ads-btn:active{
+  transform:scale(.96);
+}
+
+.status{
+  margin-top:12px;
+  font-size:13px;
+  color:#94a3b8;
+  text-align:center;
+}
+</style>
 </head>
+
 <body>
 
-<div class="app">
-  <header class="header">
-    <img id="avatar" class="avatar" />
-    <span id="username">Telegram User</span>
-  </header>
+<div class="container">
 
-  <div id="chat" class="chat"></div>
+  <!-- ✅ AIDE STYLE TEXT AD -->
+  <div class="ad-box">
+    <div class="ad-title">Sponsored • Earn Rewards</div>
+    <div class="ad-text">
+      Watch a short sponsored ad to earn instant rewards.
+      No registration required. Rewards are limited per session.
+    </div>
 
-  <div class="input-bar">
-    <input id="messageInput" type="text" placeholder="Type a message..." />
-    <button id="sendBtn">Send</button>
+    <!-- ✅ ADS BUTTON -->
+    <button class="ads-btn" onclick="showRewardAd()">ADS</button>
+
+    <div class="status" id="statusText">
+      Ready to earn rewards
+    </div>
   </div>
+
 </div>
 
-<script type="module" src="app.js"></script>
+<script>
+/* ===============================
+   ✅ REWARDED ADS FUNCTION
+================================ */
+
+function showRewardAd(){
+  document.getElementById('statusText').innerText = "Loading ad...";
+
+  // ✅ REWARDED POPUP (BEST CPM)
+  show_10276123('pop')
+    .then(() => {
+      rewardUser();
+    })
+    .catch(() => {
+
+      // 🔁 FALLBACK TO INTERSTITIAL
+      show_10276123().then(() => {
+        rewardUser();
+      }).catch(() => {
+        document.getElementById('statusText').innerText =
+          "Ads not available. Try again later.";
+      });
+
+    });
+}
+
+/* ===============================
+   ✅ USER REWARD LOGIC
+================================ */
+
+function rewardUser(){
+  document.getElementById('statusText').innerText =
+    "🎉 Reward received successfully!";
+
+  // 🔧 PUT YOUR REWARD SYSTEM HERE
+  // Example:
+  // userCoins += 10;
+  // updateBalance();
+  // saveToFirebase();
+}
+
+/* ===============================
+   ✅ AUTO IN-APP INTERSTITIAL
+   (NO REWARD – PASSIVE)
+================================ */
+
+show_10276123({
+  type: 'inApp',
+  inAppSettings: {
+    frequency: 2,
+    capping: 0.1,
+    interval: 30,
+    timeout: 5,
+    everyPage: false
+  }
+});
+</script>
+
 </body>
 </html>
