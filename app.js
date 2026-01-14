@@ -16,30 +16,30 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Telegram user
+// Telegram user (REAL-TIME)
 const tg = window.Telegram?.WebApp;
 const user = tg?.initDataUnsafe?.user;
 const uid = user?.id?.toString() || "guest";
 const uname = user?.username || "Guest";
 
-username.textContent = uname;
+document.getElementById("username").innerText = uname;
+
 const userRef = doc(db,"users",uid);
 
-// Init user
-const init = async()=>{
+// Init user instantly
+(async()=>{
   const snap = await getDoc(userRef);
   if(!snap.exists()){
     await setDoc(userRef,{balance:0,username:uname});
   }
-};
-init();
+})();
 
-// Balance sync
+// Balance live sync
 onSnapshot(userRef,s=>{
   balance.textContent = (s.data()?.balance || 0).toFixed(2);
 });
 
-// Withdrawals sync
+// Withdrawals live sync
 onSnapshot(collection(db,"withdrawals"),snap=>{
   withdrawTable.innerHTML="";
   ownerTable.innerHTML="";
@@ -49,7 +49,8 @@ onSnapshot(collection(db,"withdrawals"),snap=>{
     const w=d.data();
 
     if(w.uid===uid){
-      withdrawTable.innerHTML+=`<tr><td>₱${w.amount}</td><td>${w.status}</td></tr>`;
+      withdrawTable.innerHTML+=
+        `<tr><td>₱${w.amount}</td><td>${w.status}</td></tr>`;
     }
 
     if(w.status==="PAID") total+=w.amount;
@@ -67,26 +68,25 @@ onSnapshot(collection(db,"withdrawals"),snap=>{
   totalPaid.textContent=total.toFixed(2);
 });
 
-// Ads
-window.dailySignin=()=>{
+// ✅ AUTO-CREDIT AFTER AD WATCH
+window.dailySignin = () => {
   show_10276123().then(async()=>{
-    await updateDoc(userRef,{balance:increment(0.02)});
+    await updateDoc(userRef,{ balance: increment(0.02) });
     alert("Congratulations 🎉 0.02 peso earned");
   });
 };
 
-window.showAds=()=>{
+window.showAds = () => {
   show_10276123('pop').then(async()=>{
-    await updateDoc(userRef,{balance:increment(0.04)});
+    await updateDoc(userRef,{ balance: increment(0.04) });
     alert("Congratulations 🎉 0.04 peso earned");
   });
 };
 
-// Withdraw
-window.withdraw=async()=>{
-  const snap=await getDoc(userRef);
-  const bal=snap.data().balance;
-  if(bal<1) return alert("Minimum ₱1");
+// ✅ NO MINIMUM WITHDRAW
+window.withdraw = async()=>{
+  const snap = await getDoc(userRef);
+  const bal = snap.data().balance;
 
   await addDoc(collection(db,"withdrawals"),{
     uid,
@@ -100,11 +100,11 @@ window.withdraw=async()=>{
 };
 
 // Owner
-window.ownerLogin=()=>{
-  const p=prompt("Owner password");
+window.ownerLogin = ()=>{
+  const p = prompt("Owner password");
   if(p==="Propetas6") owner.classList.remove("hidden");
 };
 
-window.approve=async(id)=>{
+window.approve = async(id)=>{
   await updateDoc(doc(db,"withdrawals",id),{status:"PAID"});
 };
