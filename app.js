@@ -1,0 +1,158 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc,
+  query, orderBy, limit, onSnapshot, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import {
+  getDatabase, ref, push, set, onDisconnect, onValue
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+/* 🔥 Firebase config */
+const firebaseConfig={
+  apiKey:"AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
+  authDomain:"paper-house-inc.firebaseapp.com",
+  projectId:"paper-house-inc",
+  messagingSenderId:"658389836376",
+  appId:"1:658389836376:web:2ab1e2743c593f4ca8e02d"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const rdb=getDatabase(app);
+
+/* 👤 Username auto-detect */
+let username="Guest-"+Math.floor(Math.random()*9000+1000);
+if(window.Telegram?.WebApp?.initDataUnsafe?.user?.username){
+  username="@"+Telegram.WebApp.initDataUnsafe.user.username;
+}
+
+/* 🟢 Presence system */
+const myRef=push(ref(rdb,"presence"));
+function heartbeat(){
+  set(myRef,{username,lastActive:Date.now()});
+}
+heartbeat();
+setInterval(heartbeat,30000);
+onDisconnect(myRef).remove();
+
+/* 🧠 Image compression (Canvas) */
+function compressImage(file){
+  return new Promise(res=>{
+    const img=new Image();
+    const reader=new FileReader();
+    reader.onload=e=>{
+      img.src=e.target.result;
+      img.onload=()=>{
+        const c=document.createElement("canvas");
+        const max=1024;
+        let w=img.width,h=img.height;
+        if(w>h&&w>max){h*=max/w;w=max}
+        else if(h>max){w*=max/h;h=max}
+        c.width=w;c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        res(c.toDataURL("image/jpeg",0.6));
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const toBase64=f=>new Promise(r=>{
+  const fr=new FileReader();
+  fr.onload=()=>r(fr.result);
+  fr.readAsDataURL(f);
+});
+
+/* ⏱ Rate limit */
+let sentTimes=[];
+
+/* 📤 Send message */
+document.getElementById("send").onclick=async()=>{
+  const text=message.value.trim();
+  const imgs=[...images.files].slice(0,5);
+  const aud=audio.files[0];
+
+  if(!text && imgs.length===0 && !aud) return;
+
+  const now=Date.now();
+  sentTimes=sentTimes.filter(t=>now-t<60000);
+  if(sentTimes.length>=5){alert("Limit: 5 messages per minute");return;}
+  sentTimes.push(now);
+
+  let img64=[], aud64=null;
+
+  for(const f of imgs){
+    img64.push(await compressImage(f));
+  }
+
+  if(aud){
+    if(aud.size>250000){alert("MP3 too large");return;}
+    aud64=await toBase64(aud);
+  }
+
+  await addDoc(collection(db,"globalChat"),{
+    user:username,
+    text,
+    images:img64,
+    audio:aud64,
+    time:serverTimestamp()
+  });
+
+  message.value=""; images.value=""; audio.value="";
+};
+
+/* 💬 Chat listener */
+onSnapshot(
+  query(collection(db,"globalChat"),orderBy("time"),limit(5000)),
+  snap=>{
+    chat.innerHTML="";
+    snap.forEach(d=>{
+      const m=d.data();
+      const div=document.createElement("div");
+      div.className="msg";
+      div.innerHTML=`
+        <div class="user">👤 ${m.user}</div>
+        ${m.text?`<div>${m.text}</div>`:""}
+        ${(m.images||[]).map(i=>`<img src="${i}">`).join("")}
+        ${m.audio?`<audio controls src="${m.audio}"></audio>`:""}
+      `;
+      chat.appendChild(div);
+    });
+    chat.scrollTop=chat.scrollHeight;
+});
+
+/* 👥 Online users list (1 hour, pagination) */
+let users=[],page=0,PER_PAGE=15;
+
+onValue(ref(rdb,"presence"),snap=>{
+  users=[];
+  const now=Date.now();
+  snap.forEach(c=>{
+    const u=c.val();
+    if(now-u.lastActive<=3600000) users.push(u);
+  });
+  onlineCount.innerText=`🟢 ${users.length} online`;
+  renderUsers();
+});
+
+function renderUsers(){
+  usersBox.innerHTML="";
+  users.slice(page*PER_PAGE,(page+1)*PER_PAGE).forEach(u=>{
+    const online=(Date.now()-u.lastActive<120000);
+    usersBox.innerHTML+=`
+      <div class="userItem">
+        <span>${u.username}</span>
+        <span class="${online?"online":"active"}">
+          ${online?"Online":"Active"}
+        </span>
+      </div>`;
+  });
+}
+
+const usersBox=document.getElementById("users");
+document.getElementById("next").onclick=()=>{
+  if((page+1)*PER_PAGE<users.length){page++;renderUsers();}
+};
+document.getElementById("prev").onclick=()=>{
+  if(page>0){page--;renderUsers();}
+};
