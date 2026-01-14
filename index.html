@@ -6,21 +6,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-:root{
-  --bg:#0b1220;
-  --card:#020617;
-  --accent:#38bdf8;
-  --text:#e5e7eb;
-  --muted:#94a3b8;
-}
-
 body{
   margin:0;
-  background:var(--bg);
-  color:var(--text);
+  background:#0b1220;
+  color:#e5e7eb;
   font-family:system-ui;
 }
-
 .container{
   max-width:720px;
   margin:auto;
@@ -28,87 +19,58 @@ body{
   display:flex;
   flex-direction:column;
 }
-
 .header{
   padding:12px;
   background:#020617;
   display:flex;
   justify-content:space-between;
-  border-bottom:1px solid #1e293b;
 }
-
 .chat{
-  height:50vh; /* 🔥 half screen */
-  overflow-y:auto;
+  height:50vh;
+  overflow:auto;
   padding:12px;
 }
-
 .msg{
-  background:var(--card);
+  background:#020617;
   border-radius:12px;
   padding:10px;
   margin-bottom:10px;
 }
-
-.user{
-  font-size:13px;
-  color:var(--accent);
-}
-
-.text{
-  margin-top:4px;
-  font-size:15px;
-}
-
-.time{
-  font-size:11px;
-  color:var(--muted);
-  margin-top:4px;
-}
-
+.user{color:#38bdf8;font-size:13px}
+img{width:100%;border-radius:10px;margin-top:6px}
+audio{width:100%;margin-top:6px}
 .inputBox{
-  display:flex;
-  gap:6px;
   padding:10px;
   background:#020617;
-  border-top:1px solid #1e293b;
 }
-
-input{
-  flex:1;
-  padding:10px;
-  border-radius:10px;
-  border:none;
-  outline:none;
-  background:#020617;
-  color:#fff;
+.controls{display:flex;gap:6px;margin-bottom:6px}
+input,button{
+  padding:10px;border-radius:10px;border:none;
 }
-
-button{
-  padding:10px 14px;
-  border-radius:10px;
-  border:none;
-  background:var(--accent);
-  font-weight:600;
-}
+input[type=text]{flex:1;background:#020617;color:#fff}
+button{background:#38bdf8;font-weight:600}
 </style>
 </head>
 
 <body>
 <div class="container">
-
   <div class="header">
-    <div>🌍 Global Live Chat</div>
+    <div>🌍 Global Chat</div>
     <div id="online">🟢 0 online</div>
   </div>
 
   <div id="chat" class="chat"></div>
 
   <div class="inputBox">
-    <input id="message" placeholder="Type message…" maxlength="200">
-    <button id="sendBtn">Send</button>
+    <div class="controls">
+      <input type="file" id="images" accept="image/*" multiple>
+      <input type="file" id="audio" accept="audio/mpeg">
+    </div>
+    <div class="controls">
+      <input id="message" type="text" placeholder="Type message…">
+      <button id="send">Send</button>
+    </div>
   </div>
-
 </div>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -116,106 +78,104 @@ button{
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, query,
-  orderBy, limit, onSnapshot, serverTimestamp
+  getFirestore, collection, addDoc,
+  query, orderBy, limit, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import {
-  getDatabase, ref, onValue, push, onDisconnect
+  getDatabase, ref, push, onDisconnect, onValue
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-/* 🔹 Firebase Config */
-const firebaseConfig = {
-  apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
-  authDomain: "paper-house-inc.firebaseapp.com",
-  projectId: "paper-house-inc",
-  storageBucket: "paper-house-inc.firebasestorage.app",
-  messagingSenderId: "658389836376",
-  appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
+/* 🔹 Firebase */
+const firebaseConfig={
+  apiKey:"AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
+  authDomain:"paper-house-inc.firebaseapp.com",
+  projectId:"paper-house-inc",
+  messagingSenderId:"658389836376",
+  appId:"1:658389836376:web:2ab1e2743c593f4ca8e02d"
 };
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+/* 👤 Username */
+let username=Telegram?.WebApp?.initDataUnsafe?.user?.username
+ ? "@"+Telegram.WebApp.initDataUnsafe.user.username
+ : "Guest-"+Math.floor(Math.random()*9000+1000);
 
-/* 👤 LIVE USERNAME DETECTION */
-let username;
-if (window.Telegram?.WebApp?.initDataUnsafe?.user?.username) {
-  username = "@" + Telegram.WebApp.initDataUnsafe.user.username;
-} else {
-  username = "Guest-" + Math.floor(1000 + Math.random() * 9000);
-}
-
-/* 🔥 MESSAGE LIMIT SETTINGS */
-const MESSAGE_LIMIT = 5;
-const WINDOW_MS = 60 * 1000;
-let sentTimes = [];
-
-/* 🔹 Firestore Chat */
-const chatCol = collection(db, "globalChat");
-
-/* 🔹 SEND MESSAGE (ANTI-SPAM) */
-document.getElementById("sendBtn").onclick = async () => {
-  const input = document.getElementById("message");
-  const text = input.value.trim();
-  if (!text) return;
-
-  const now = Date.now();
-  sentTimes = sentTimes.filter(t => now - t < WINDOW_MS);
-
-  if (sentTimes.length >= MESSAGE_LIMIT) {
-    alert("⏳ Slow down — max 5 messages per minute.");
-    return;
-  }
-
-  sentTimes.push(now);
-
-  await addDoc(chatCol,{
-    user: username,
-    text,
-    time: serverTimestamp()
-  });
-
-  input.value = "";
-};
-
-/* 🔹 LIVE CHAT (LAST 5K) */
-const chatBox = document.getElementById("chat");
-const q = query(chatCol, orderBy("time","asc"), limit(5000));
-
-onSnapshot(q, snap => {
-  chatBox.innerHTML = "";
-  snap.forEach(docu => {
-    const d = docu.data();
-    const div = document.createElement("div");
-    div.className = "msg";
-    div.innerHTML = `
-      <div class="user">👤 ${escape(d.user)}</div>
-      <div class="text">${escape(d.text)}</div>
-      <div class="time">${new Date().toLocaleTimeString()}</div>
-    `;
-    chatBox.appendChild(div);
-  });
-  chatBox.scrollTop = chatBox.scrollHeight;
-});
-
-/* 🟢 ONLINE COUNT (Realtime DB Presence) */
-const rdb = getDatabase(app);
-const presenceRef = ref(rdb,"presence");
-const me = push(presenceRef);
+/* 🟢 Presence */
+const rdb=getDatabase(app);
+const me=push(ref(rdb,"presence"));
 me.set(username);
 onDisconnect(me).remove();
-
-onValue(presenceRef, snap=>{
-  document.getElementById("online").innerText =
-    `🟢 ${snap.size || 0} online`;
+onValue(ref(rdb,"presence"),s=>{
+  online.innerText=`🟢 ${s.size||0} online`;
 });
 
-/* 🔐 Escape */
-function escape(t){
-  return t.replace(/[&<>"']/g,m=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",
-    '"':"&quot;","'":"&#039;"
-  }[m]));
-}
+/* 🧠 Helpers */
+const toBase64=f=>new Promise(res=>{
+  const r=new FileReader();
+  r.onload=()=>res(r.result);
+  r.readAsDataURL(f);
+});
+
+/* 🔥 Rate limit */
+let times=[];
+
+/* 📤 SEND */
+send.onclick=async()=>{
+  const text=message.value.trim();
+  const imgs=[...images.files].slice(0,5);
+  const aud=audio.files[0];
+
+  const now=Date.now();
+  times=times.filter(t=>now-t<60000);
+  if(times.length>=5){alert("Max 5 msgs/min");return;}
+  times.push(now);
+
+  let img64=[], aud64=null;
+
+  for(const f of imgs){
+    if(f.size>150000){alert("Image too big");return;}
+    img64.push(await toBase64(f));
+  }
+
+  if(aud){
+    if(aud.size>300000){alert("Audio too big");return;}
+    aud64=await toBase64(aud);
+  }
+
+  await addDoc(collection(db,"globalChat"),{
+    user:username,
+    text,
+    images:img64,
+    audio:aud64,
+    time:serverTimestamp()
+  });
+
+  message.value="";
+  images.value="";
+  audio.value="";
+};
+
+/* 💬 CHAT */
+onSnapshot(
+  query(collection(db,"globalChat"),orderBy("time"),limit(5000)),
+  snap=>{
+    chat.innerHTML="";
+    snap.forEach(d=>{
+      const m=d.data();
+      const div=document.createElement("div");
+      div.className="msg";
+      div.innerHTML=`
+        <div class="user">👤 ${m.user}</div>
+        ${m.text?`<div>${m.text}</div>`:""}
+        ${(m.images||[]).map(i=>`<img src="${i}">`).join("")}
+        ${m.audio?`<audio controls src="${m.audio}"></audio>
+        <a href="${m.audio}" download>⬇ Download MP3</a>`:""}
+      `;
+      chat.appendChild(div);
+    });
+    chat.scrollTop=chat.scrollHeight;
+});
 </script>
 </body>
 </html>
