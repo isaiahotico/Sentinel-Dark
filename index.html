@@ -6,57 +6,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  margin:0;
-  background:#0b1220;
-  color:#e5e7eb;
-  font-family:system-ui;
-}
-.container{
-  max-width:720px;
-  margin:auto;
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-}
-.header{
-  padding:12px;
-  background:#020617;
-  display:flex;
-  justify-content:space-between;
-}
-.chat{
-  height:50vh;
-  overflow:auto;
-  padding:12px;
-}
-.msg{
-  background:#020617;
-  border-radius:12px;
-  padding:10px;
-  margin-bottom:10px;
-}
+body{margin:0;background:#0b1220;color:#e5e7eb;font-family:system-ui}
+.container{max-width:720px;margin:auto;height:100vh;display:flex;flex-direction:column}
+.header{padding:12px;background:#020617;display:flex;justify-content:space-between}
+.chat{height:45vh;overflow:auto;padding:12px}
+.msg{background:#020617;border-radius:12px;padding:10px;margin-bottom:10px}
 .user{color:#38bdf8;font-size:13px}
 img{width:100%;border-radius:10px;margin-top:6px}
 audio{width:100%;margin-top:6px}
-.inputBox{
-  padding:10px;
-  background:#020617;
-}
+
+.inputBox{padding:10px;background:#020617}
 .controls{display:flex;gap:6px;margin-bottom:6px}
-input,button{
-  padding:10px;border-radius:10px;border:none;
-}
+input,button{padding:10px;border-radius:10px;border:none}
 input[type=text]{flex:1;background:#020617;color:#fff}
 button{background:#38bdf8;font-weight:600}
+
+.usersPanel{background:#020617;padding:10px}
+.userItem{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e293b}
+.statusOnline{color:#22c55e}
+.statusActive{color:#facc15}
+.pagination{display:flex;justify-content:space-between;margin-top:8px}
 </style>
 </head>
 
 <body>
 <div class="container">
+
   <div class="header">
     <div>🌍 Global Chat</div>
-    <div id="online">🟢 0 online</div>
+    <div id="onlineCount">🟢 0 online</div>
   </div>
 
   <div id="chat" class="chat"></div>
@@ -71,9 +49,18 @@ button{background:#38bdf8;font-weight:600}
       <button id="send">Send</button>
     </div>
   </div>
-</div>
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- 👥 USERS PANEL -->
+  <div class="usersPanel">
+    <b>👥 Active users (last 1 hour)</b>
+    <div id="users"></div>
+    <div class="pagination">
+      <button onclick="prevPage()">⬅ Prev</button>
+      <button onclick="nextPage()">Next ➡</button>
+    </div>
+  </div>
+
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -82,7 +69,7 @@ import {
   query, orderBy, limit, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import {
-  getDatabase, ref, push, onDisconnect, onValue
+  getDatabase, ref, push, onDisconnect, onValue, set
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 /* 🔹 Firebase */
@@ -95,32 +82,57 @@ const firebaseConfig={
 };
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
-
-/* 👤 Username */
-let username=Telegram?.WebApp?.initDataUnsafe?.user?.username
- ? "@"+Telegram.WebApp.initDataUnsafe.user.username
- : "Guest-"+Math.floor(Math.random()*9000+1000);
-
-/* 🟢 Presence */
 const rdb=getDatabase(app);
-const me=push(ref(rdb,"presence"));
-me.set(username);
-onDisconnect(me).remove();
-onValue(ref(rdb,"presence"),s=>{
-  online.innerText=`🟢 ${s.size||0} online`;
-});
 
-/* 🧠 Helpers */
-const toBase64=f=>new Promise(res=>{
-  const r=new FileReader();
-  r.onload=()=>res(r.result);
-  r.readAsDataURL(f);
+/* 👤 Username safe detect */
+let username="Guest-"+Math.floor(Math.random()*9000+1000);
+try{
+  if(window.Telegram?.WebApp?.initDataUnsafe?.user?.username){
+    username="@"+Telegram.WebApp.initDataUnsafe.user.username;
+  }
+}catch(e){}
+
+/* 🟢 Presence with timestamp */
+const meRef=push(ref(rdb,"presence"));
+function updatePresence(){
+  set(meRef,{username,lastActive:Date.now()});
+}
+updatePresence();
+setInterval(updatePresence,30000);
+onDisconnect(meRef).remove();
+
+/* 🧠 Auto Image Compression (Canvas) */
+function compressImage(file){
+  return new Promise(res=>{
+    const img=new Image();
+    const reader=new FileReader();
+    reader.onload=e=>{
+      img.src=e.target.result;
+      img.onload=()=>{
+        const c=document.createElement("canvas");
+        const max=1024;
+        let w=img.width,h=img.height;
+        if(w>h&&w>max){h*=max/w;w=max}
+        else if(h>max){w*=max/h;h=max}
+        c.width=w;c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        res(c.toDataURL("image/jpeg",0.6));
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const toBase64=f=>new Promise(r=>{
+  const fr=new FileReader();
+  fr.onload=()=>r(fr.result);
+  fr.readAsDataURL(f);
 });
 
 /* 🔥 Rate limit */
 let times=[];
 
-/* 📤 SEND */
+/* 📤 Send */
 send.onclick=async()=>{
   const text=message.value.trim();
   const imgs=[...images.files].slice(0,5);
@@ -128,18 +140,17 @@ send.onclick=async()=>{
 
   const now=Date.now();
   times=times.filter(t=>now-t<60000);
-  if(times.length>=5){alert("Max 5 msgs/min");return;}
+  if(times.length>=5){alert("Max 5 messages/min");return;}
   times.push(now);
 
   let img64=[], aud64=null;
 
   for(const f of imgs){
-    if(f.size>150000){alert("Image too big");return;}
-    img64.push(await toBase64(f));
+    img64.push(await compressImage(f));
   }
 
   if(aud){
-    if(aud.size>300000){alert("Audio too big");return;}
+    if(aud.size>250000){alert("Audio too large");return;}
     aud64=await toBase64(aud);
   }
 
@@ -151,12 +162,10 @@ send.onclick=async()=>{
     time:serverTimestamp()
   });
 
-  message.value="";
-  images.value="";
-  audio.value="";
+  message.value="";images.value="";audio.value="";
 };
 
-/* 💬 CHAT */
+/* 💬 Chat */
 onSnapshot(
   query(collection(db,"globalChat"),orderBy("time"),limit(5000)),
   snap=>{
@@ -169,13 +178,45 @@ onSnapshot(
         <div class="user">👤 ${m.user}</div>
         ${m.text?`<div>${m.text}</div>`:""}
         ${(m.images||[]).map(i=>`<img src="${i}">`).join("")}
-        ${m.audio?`<audio controls src="${m.audio}"></audio>
-        <a href="${m.audio}" download>⬇ Download MP3</a>`:""}
+        ${m.audio?`<audio controls src="${m.audio}"></audio>`:""}
       `;
       chat.appendChild(div);
     });
     chat.scrollTop=chat.scrollHeight;
 });
+
+/* 👥 USERS LIST PAGINATION */
+let users=[],page=0,PER_PAGE=15;
+
+onValue(ref(rdb,"presence"),snap=>{
+  const now=Date.now();
+  users=[];
+  snap.forEach(c=>{
+    const u=c.val();
+    if(now-u.lastActive<=3600000){
+      users.push(u);
+    }
+  });
+  document.getElementById("onlineCount").innerText=`🟢 ${users.length} online`;
+  renderUsers();
+});
+
+function renderUsers(){
+  const box=document.getElementById("users");
+  box.innerHTML="";
+  users.slice(page*PER_PAGE,(page+1)*PER_PAGE).forEach(u=>{
+    const online=(Date.now()-u.lastActive<120000);
+    box.innerHTML+=`
+      <div class="userItem">
+        <span>${u.username}</span>
+        <span class="${online?"statusOnline":"statusActive"}">
+          ${online?"Online":"Active"}
+        </span>
+      </div>`;
+  });
+}
+window.nextPage=()=>{if((page+1)*PER_PAGE<users.length){page++;renderUsers();}};
+window.prevPage=()=>{if(page>0){page--;renderUsers();}};
 </script>
 </body>
 </html>
