@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🌍 Global Aide Chat</title>
+<title>🌍 Global Live Chat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{margin:0;background:#0b1220;color:#e5e7eb;font-family:system-ui}
 .container{max-width:720px;margin:auto;height:100vh;display:flex;flex-direction:column}
 .header{padding:12px;background:#020617;display:flex;justify-content:space-between}
-.chat{height:45vh;overflow:auto;padding:12px}
+.chat{height:45vh;overflow-y:auto;padding:12px}
 .msg{background:#020617;border-radius:12px;padding:10px;margin-bottom:10px}
-.user{color:#38bdf8;font-size:13px}
+.user{color:#38bdf8;font-size:13px;margin-bottom:4px}
 img{width:100%;border-radius:10px;margin-top:6px}
 audio{width:100%;margin-top:6px}
 
@@ -23,8 +23,8 @@ button{background:#38bdf8;font-weight:600}
 
 .usersPanel{background:#020617;padding:10px}
 .userItem{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e293b}
-.statusOnline{color:#22c55e}
-.statusActive{color:#facc15}
+.online{color:#22c55e}
+.active{color:#facc15}
 .pagination{display:flex;justify-content:space-between;margin-top:8px}
 </style>
 </head>
@@ -50,173 +50,17 @@ button{background:#38bdf8;font-weight:600}
     </div>
   </div>
 
-  <!-- 👥 USERS PANEL -->
   <div class="usersPanel">
     <b>👥 Active users (last 1 hour)</b>
     <div id="users"></div>
     <div class="pagination">
-      <button onclick="prevPage()">⬅ Prev</button>
-      <button onclick="nextPage()">Next ➡</button>
+      <button id="prev">⬅ Prev</button>
+      <button id="next">Next ➡</button>
     </div>
   </div>
 
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import {
-  getFirestore, collection, addDoc,
-  query, orderBy, limit, onSnapshot, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import {
-  getDatabase, ref, push, onDisconnect, onValue, set
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-
-/* 🔹 Firebase */
-const firebaseConfig={
-  apiKey:"AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
-  authDomain:"paper-house-inc.firebaseapp.com",
-  projectId:"paper-house-inc",
-  messagingSenderId:"658389836376",
-  appId:"1:658389836376:web:2ab1e2743c593f4ca8e02d"
-};
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
-const rdb=getDatabase(app);
-
-/* 👤 Username safe detect */
-let username="Guest-"+Math.floor(Math.random()*9000+1000);
-try{
-  if(window.Telegram?.WebApp?.initDataUnsafe?.user?.username){
-    username="@"+Telegram.WebApp.initDataUnsafe.user.username;
-  }
-}catch(e){}
-
-/* 🟢 Presence with timestamp */
-const meRef=push(ref(rdb,"presence"));
-function updatePresence(){
-  set(meRef,{username,lastActive:Date.now()});
-}
-updatePresence();
-setInterval(updatePresence,30000);
-onDisconnect(meRef).remove();
-
-/* 🧠 Auto Image Compression (Canvas) */
-function compressImage(file){
-  return new Promise(res=>{
-    const img=new Image();
-    const reader=new FileReader();
-    reader.onload=e=>{
-      img.src=e.target.result;
-      img.onload=()=>{
-        const c=document.createElement("canvas");
-        const max=1024;
-        let w=img.width,h=img.height;
-        if(w>h&&w>max){h*=max/w;w=max}
-        else if(h>max){w*=max/h;h=max}
-        c.width=w;c.height=h;
-        c.getContext("2d").drawImage(img,0,0,w,h);
-        res(c.toDataURL("image/jpeg",0.6));
-      };
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-const toBase64=f=>new Promise(r=>{
-  const fr=new FileReader();
-  fr.onload=()=>r(fr.result);
-  fr.readAsDataURL(f);
-});
-
-/* 🔥 Rate limit */
-let times=[];
-
-/* 📤 Send */
-send.onclick=async()=>{
-  const text=message.value.trim();
-  const imgs=[...images.files].slice(0,5);
-  const aud=audio.files[0];
-
-  const now=Date.now();
-  times=times.filter(t=>now-t<60000);
-  if(times.length>=5){alert("Max 5 messages/min");return;}
-  times.push(now);
-
-  let img64=[], aud64=null;
-
-  for(const f of imgs){
-    img64.push(await compressImage(f));
-  }
-
-  if(aud){
-    if(aud.size>250000){alert("Audio too large");return;}
-    aud64=await toBase64(aud);
-  }
-
-  await addDoc(collection(db,"globalChat"),{
-    user:username,
-    text,
-    images:img64,
-    audio:aud64,
-    time:serverTimestamp()
-  });
-
-  message.value="";images.value="";audio.value="";
-};
-
-/* 💬 Chat */
-onSnapshot(
-  query(collection(db,"globalChat"),orderBy("time"),limit(5000)),
-  snap=>{
-    chat.innerHTML="";
-    snap.forEach(d=>{
-      const m=d.data();
-      const div=document.createElement("div");
-      div.className="msg";
-      div.innerHTML=`
-        <div class="user">👤 ${m.user}</div>
-        ${m.text?`<div>${m.text}</div>`:""}
-        ${(m.images||[]).map(i=>`<img src="${i}">`).join("")}
-        ${m.audio?`<audio controls src="${m.audio}"></audio>`:""}
-      `;
-      chat.appendChild(div);
-    });
-    chat.scrollTop=chat.scrollHeight;
-});
-
-/* 👥 USERS LIST PAGINATION */
-let users=[],page=0,PER_PAGE=15;
-
-onValue(ref(rdb,"presence"),snap=>{
-  const now=Date.now();
-  users=[];
-  snap.forEach(c=>{
-    const u=c.val();
-    if(now-u.lastActive<=3600000){
-      users.push(u);
-    }
-  });
-  document.getElementById("onlineCount").innerText=`🟢 ${users.length} online`;
-  renderUsers();
-});
-
-function renderUsers(){
-  const box=document.getElementById("users");
-  box.innerHTML="";
-  users.slice(page*PER_PAGE,(page+1)*PER_PAGE).forEach(u=>{
-    const online=(Date.now()-u.lastActive<120000);
-    box.innerHTML+=`
-      <div class="userItem">
-        <span>${u.username}</span>
-        <span class="${online?"statusOnline":"statusActive"}">
-          ${online?"Online":"Active"}
-        </span>
-      </div>`;
-  });
-}
-window.nextPage=()=>{if((page+1)*PER_PAGE<users.length){page++;renderUsers();}};
-window.prevPage=()=>{if(page>0){page--;renderUsers();}};
-</script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
