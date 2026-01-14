@@ -18,6 +18,21 @@ const db = getFirestore(app);
 
 let USERNAME = localStorage.getItem("miniBankUsername");
 
+/* ---------- HELPERS ---------- */
+function canClaim(key, ms) {
+  const t = localStorage.getItem(key);
+  return !t || Date.now() - parseInt(t) > ms;
+}
+function setClaim(key) {
+  localStorage.setItem(key, Date.now());
+}
+async function rewardUser(amount = 0.02) {
+  const ref = doc(db, "users", USERNAME);
+  const snap = await getDoc(ref);
+  await updateDoc(ref, { balance: snap.data().balance + amount });
+  alert(`🎉 You earned ₱${amount.toFixed(2)} pesos`);
+}
+
 /* ---------- AUTO LOGIN ---------- */
 if (USERNAME) {
   showBank();
@@ -30,29 +45,20 @@ createUsernameBtn.onclick = async () => {
   const username = inputUsername.value.trim();
   if (!username) return alert("Enter username");
 
-  createUsernameBtn.disabled = true;
-
   const ref = doc(db, "users", username);
-  const snap = await getDoc(ref);
-  if (snap.exists()) {
-    createUsernameBtn.disabled = false;
-    return alert("Username taken");
-  }
+  if ((await getDoc(ref)).exists()) return alert("Username taken");
 
   await setDoc(ref, {
     username,
-    balance: 500000,
+    balance: 0,
     createdAt: new Date()
   });
 
   USERNAME = username;
   localStorage.setItem("miniBankUsername", username);
-
   showBank();
   listenUser();
   listenUserWithdrawals();
-
-  createUsernameBtn.disabled = false;
 };
 
 function showBank() {
@@ -61,42 +67,78 @@ function showBank() {
   usernameDisplay.innerText = `👤 ${USERNAME}`;
 }
 
-/* ---------- REALTIME USER ---------- */
+/* ---------- BALANCE REALTIME ---------- */
 function listenUser() {
   onSnapshot(doc(db, "users", USERNAME), snap => {
     const bal = snap.data().balance;
-    const old = parseInt(balance.dataset.old);
-    if (old !== bal) animateBalance(old, bal);
+    balance.innerText = `Balance: ₱${bal.toFixed(2)}`;
     balance.dataset.old = bal;
   });
 }
 
-function animateBalance(start, end) {
-  let t0;
-  function step(t) {
-    if (!t0) t0 = t;
-    const p = Math.min((t - t0) / 500, 1);
-    balance.innerText = `Balance: ₱${Math.floor(start + (end - start) * p)}`;
-    if (p < 1) requestAnimationFrame(step);
+/* ---------- ADS REWARDS ---------- */
+signinAdsBtn.onclick = () => {
+  if (!canClaim("signinAds", 12 * 60 * 60 * 1000))
+    return alert("Available every 12 hours");
+  show_10276123().then(async () => {
+    setClaim("signinAds");
+    await rewardUser(0.02);
+  });
+};
+
+giftAdsBtn.onclick = () => {
+  if (!canClaim("giftAds", 3 * 60 * 60 * 1000))
+    return alert("Available every 3 hours");
+  show_10276123().then(async () => {
+    setClaim("giftAds");
+    await rewardUser(0.02);
+  });
+};
+
+viewAdsBtn.onclick = () => {
+  if (!canClaim("viewAds", 5 * 60 * 1000))
+    return alert("Available every 5 minutes");
+  show_10276123().then(async () => {
+    setClaim("viewAds");
+    await rewardUser(0.02);
+  });
+};
+
+viewAds2Btn.onclick = () => {
+  if (!canClaim("viewAds2", 5 * 60 * 1000))
+    return alert("Available every 5 minutes");
+  show_10276123("pop").then(async () => {
+    setClaim("viewAds2");
+    await rewardUser(0.02);
+  });
+};
+
+/* ---------- AUTO IN-APP ADS ---------- */
+show_10276123({
+  type: 'inApp',
+  inAppSettings: {
+    frequency: 2,
+    capping: 0.1,
+    interval: 30,
+    timeout: 5,
+    everyPage: false
   }
-  requestAnimationFrame(step);
-}
+});
 
 /* ---------- WITHDRAW ---------- */
 withdrawBtn.onclick = async () => {
-  const amount = parseInt(withdrawAmount.value);
+  const amount = parseFloat(withdrawAmount.value);
   const gcash = gcashNumber.value.trim();
-  if (!amount || !gcash) return alert("Invalid input");
+  if (!amount || amount <= 0 || !gcash) return alert("Invalid input");
 
   const userRef = doc(db, "users", USERNAME);
   const snap = await getDoc(userRef);
   if (amount > snap.data().balance) return alert("Insufficient balance");
 
-  const receiptId = `RCPT-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${Math.floor(1000+Math.random()*9000)}`;
+  const receiptId = `RCPT-${Date.now()}-${Math.floor(Math.random()*9999)}`;
 
   await addDoc(collection(db, "withdrawals"), {
     username: USERNAME,
-    userId: USERNAME,
     amount,
     gcashNumber: gcash,
     receiptId,
@@ -121,7 +163,6 @@ function listenUserWithdrawals() {
     snap.forEach(d => {
       const w = d.data();
       if (w.username !== USERNAME) return;
-
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>₱${w.amount}</td>
