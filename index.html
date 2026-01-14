@@ -2,41 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🌍 Global Live Chat + Rewards</title>
+<title>🌍 Global Live Chat + Ads Rewards</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- Monetag SDK -->
 <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
 
 <style>
-body{margin:0;background:#0b1220;color:#e5e7eb;font-family:system-ui}
+body{margin:0;background:#0b1220;color:#e5e7eb;font-family:system-ui;overflow:hidden}
 .container{max-width:720px;margin:auto;height:100vh;display:flex;flex-direction:column}
-.header{padding:12px;background:#020617;display:flex;justify-content:space-between;align-items:center}
-.chat{height:35vh;overflow-y:auto;padding:12px;flex:1}
+.header{padding:12px;background:#020617;display:flex;justify-content:space-between;align-items:center;flex:none}
+#balanceDisplay{color:#facc15;font-weight:600}
+.chat{height:40vh;overflow-y:auto;padding:12px;flex:1}
 .msg{background:#020617;border-radius:12px;padding:10px;margin-bottom:10px;position:relative}
 .user{color:#38bdf8;font-size:13px;margin-bottom:4px}
 .reactions{position:absolute;top:6px;right:6px;display:flex;gap:4px}
 img{width:100%;border-radius:10px;margin-top:6px}
 audio{width:100%;margin-top:6px}
 
-.inputBox{padding:10px;background:#020617}
+.inputBox{padding:10px;background:#020617;flex:none}
 .controls{display:flex;gap:6px;margin-bottom:6px}
 input,button{padding:10px;border-radius:10px;border:none}
 input[type=text]{flex:1;background:#020617;color:#fff}
 button{background:#38bdf8;font-weight:600}
 
-.usersPanel{background:#020617;padding:10px;max-height:200px;overflow-y:auto}
+.usersPanel{background:#020617;padding:10px;max-height:150px;overflow-y:auto;flex:none}
 .userItem{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e293b}
 .online{color:#22c55e}
 .active{color:#facc15}
 .pagination{display:flex;justify-content:space-between;margin-top:8px}
 
-.balancePanel{background:#020617;padding:10px;margin-top:8px}
-.withdrawTable{width:100%;border-collapse:collapse;margin-top:4px}
-.withdrawTable th, .withdrawTable td{border:1px solid #1e293b;padding:6px;font-size:12px}
-
-#ownerPanel{display:none;background:#111;padding:12px;margin-top:8px}
-#ownerPanel input[type=password]{width:100%;margin-bottom:6px}
+.withdrawTable{width:100%;border-collapse:collapse;margin-top:4px;flex:none}
+.withdrawTable th, .withdrawTable td{border:1px solid #1e293b;padding:6px;font-size:12px;text-align:center}
 </style>
 </head>
 
@@ -44,8 +41,8 @@ button{background:#38bdf8;font-weight:600}
 <div class="container">
 
   <div class="header">
-    <div>🌍 Global Chat + Rewards</div>
-    <div id="onlineCount">🟢 0 online</div>
+    <div>🌍 Global Chat</div>
+    <div>💰 Balance: <span id="balanceDisplay">0.00</span> PHP</div>
   </div>
 
   <div id="chat" class="chat"></div>
@@ -70,28 +67,12 @@ button{background:#38bdf8;font-weight:600}
     </div>
   </div>
 
-  <div class="balancePanel">
-    <b>💰 Your Balance: <span id="balance">0</span> PHP</b>
-    <button id="withdraw">Withdraw to GCash</button>
+  <div>
+    <b>📥 Withdrawals</b>
     <table class="withdrawTable">
-      <thead>
-        <tr><th>ID</th><th>Amount</th><th>Status</th></tr>
-      </thead>
+      <thead><tr><th>User</th><th>Status</th></tr></thead>
       <tbody id="withdrawals"></tbody>
     </table>
-  </div>
-
-  <div id="ownerPanel">
-    <b>👑 Owner Dashboard</b>
-    <input type="password" id="ownerPass" placeholder="Enter password">
-    <button id="ownerLogin">Login</button>
-    <div id="ownerContent" style="display:none">
-      <h4>Pending Withdrawals</h4>
-      <table class="withdrawTable">
-        <thead><tr><th>User</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody id="ownerWithdrawals"></tbody>
-      </table>
-    </div>
   </div>
 
 </div>
