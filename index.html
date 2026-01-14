@@ -13,19 +13,30 @@ body{margin:0;font-family:Arial;background:#0f172a;color:#fff}
 .container{max-width:420px;margin:auto;padding:16px}
 .card{background:#020617;padding:14px;border-radius:12px;margin-bottom:12px}
 button{width:100%;padding:10px;border-radius:10px;border:none;margin-top:8px;font-weight:bold}
-.green{background:#22c55e;color:#000}
 .blue{background:#38bdf8;color:#000}
+.green{background:#22c55e;color:#000}
 .red{background:#f87171;color:#000}
 table{width:100%;font-size:12px}
 td,th{padding:6px;border-bottom:1px solid #334155}
 .hidden{display:none}
 </style>
+
+<!-- FAST Telegram username (instant, before Firebase loads) -->
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg?.initDataUnsafe?.user?.username) {
+  document.addEventListener("DOMContentLoaded",()=>{
+    document.getElementById("username").innerText =
+      tg.initDataUnsafe.user.username;
+  });
+}
+</script>
 </head>
 
 <body>
 <div class="container">
 
-<h3>👤 <span id="username">Loading...</span></h3>
+<h3>👤 <span id="username">Guest</span></h3>
 
 <div class="card">
 <h2>Balance: ₱<span id="balance">0.00</span></h2>
