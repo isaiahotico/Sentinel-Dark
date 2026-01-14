@@ -21,30 +21,67 @@ const db = getFirestore(app);
 let USERNAME = "";
 let USER_DOC_ID = "";
 
+// --- AUTO LOGIN IF USER EXISTS ---
+const savedUsername = localStorage.getItem("miniBankUsername");
+if (savedUsername) {
+  USERNAME = savedUsername;
+  USER_DOC_ID = savedUsername;
+  showBankUI();
+  listenUser(USER_DOC_ID);
+} else {
+  document.getElementById("usernameCard").style.display = "block";
+}
+
 // --- CREATE USER ACCOUNT ---
 document.getElementById("createUsernameBtn").addEventListener("click", async () => {
   const usernameInput = document.getElementById("inputUsername").value.trim();
   if (!usernameInput) return alert("Enter a valid username");
 
-  const userRef = doc(db, "users", usernameInput);
-  const docSnap = await getDoc(userRef);
-  if (docSnap.exists()) return alert("Username already taken");
+  const createBtn = document.getElementById("createUsernameBtn");
+  createBtn.disabled = true;
+  createBtn.innerText = "⏳ Creating...";
 
-  // Create user
-  await setDoc(userRef, { username: usernameInput, balance: 500000, createdAt: new Date() });
-  USERNAME = usernameInput;
-  USER_DOC_ID = usernameInput;
+  try {
+    const userRef = doc(db, "users", usernameInput);
+    const docSnap = await getDoc(userRef);
+    if (docSnap.exists()) {
+      alert("Username already taken");
+      createBtn.disabled = false;
+      createBtn.innerText = "✅ Create Account";
+      return;
+    }
 
-  // Hide username card, show bank
+    await setDoc(userRef, {
+      username: usernameInput,
+      balance: 500000,
+      createdAt: new Date()
+    });
+
+    // Save locally for persistent login
+    USERNAME = usernameInput;
+    USER_DOC_ID = usernameInput;
+    localStorage.setItem("miniBankUsername", USERNAME);
+
+    showBankUI();
+    listenUser(USER_DOC_ID);
+
+  } catch (error) {
+    console.error(error);
+    alert("Error creating account. Please try again.");
+  } finally {
+    createBtn.disabled = false;
+    createBtn.innerText = "✅ Create Account";
+  }
+});
+
+// --- SHOW BANK UI FUNCTION ---
+function showBankUI() {
   document.getElementById("usernameCard").style.display = "none";
   document.getElementById("bankCard").style.display = "block";
-
   document.getElementById("usernameDisplay").innerText = `👤 ${USERNAME}`;
   document.getElementById("balance").innerText = `Balance: ₱500000`;
   document.getElementById("balance").setAttribute("data-old", "500000");
-
-  listenUser(USER_DOC_ID);
-});
+}
 
 // --- LISTEN USER DATA ---
 function listenUser(docId) {
@@ -95,22 +132,28 @@ document.getElementById("withdrawBtn").addEventListener("click", async () => {
   const gcashNumber = document.getElementById("gcashNumber").value.trim();
   if (!amount || !gcashNumber) return alert("Enter valid amount & GCash number");
 
-  const userRef = doc(db, "users", USER_DOC_ID);
-  const userSnap = await getDoc(userRef);
-  const userBalance = userSnap.data().balance;
-  if (amount > userBalance) return alert("Insufficient balance");
+  try {
+    const userRef = doc(db, "users", USER_DOC_ID);
+    const userSnap = await getDoc(userRef);
+    const userBalance = userSnap.data().balance;
+    if (amount > userBalance) return alert("Insufficient balance");
 
-  await addDoc(collection(db, "withdrawals"), {
-    userId: USER_DOC_ID,
-    username: USERNAME,
-    amount,
-    gcashNumber,
-    status: "pending",
-    requestedAt: new Date()
-  });
+    await addDoc(collection(db, "withdrawals"), {
+      userId: USER_DOC_ID,
+      username: USERNAME,
+      amount,
+      gcashNumber,
+      status: "pending",
+      requestedAt: new Date()
+    });
 
-  await updateDoc(userRef, { balance: userBalance - amount });
-  alert("💰 Withdrawal requested! Waiting for approval.");
+    await updateDoc(userRef, { balance: userBalance - amount });
+    alert("💰 Withdrawal requested! Waiting for approval.");
+
+  } catch (error) {
+    console.error(error);
+    alert("Error processing withdrawal.");
+  }
 });
 
 // --- OWNER DASHBOARD ---
@@ -118,10 +161,11 @@ document.getElementById("ownerLoginBtn").addEventListener("click", () => {
   const pass = document.getElementById("ownerPassword").value;
   if (pass !== "Propetas6") return alert("Incorrect password");
   alert("🔑 Owner logged in!");
-  listenWithdrawals();
+  loadOwnerDashboard();
 });
 
-function listenWithdrawals() {
+// --- OWNER DASHBOARD FUNCTION ---
+function loadOwnerDashboard() {
   const q = query(collection(db, "withdrawals"), orderBy("requestedAt", "desc"));
   onSnapshot(q, (snapshot) => {
     const list = document.getElementById("withdrawalsList");
@@ -140,6 +184,11 @@ function listenWithdrawals() {
 
 // --- MARK PAID ---
 window.markPaid = async function(withdrawalId, userId, amount) {
-  await updateDoc(doc(db, "withdrawals", withdrawalId), { status: "paid" });
-  alert(`💸 Withdrawal ₱${amount} marked as PAID`);
-}
+  try {
+    await updateDoc(doc(db, "withdrawals", withdrawalId), { status: "paid" });
+    alert(`💸 Withdrawal ₱${amount} marked as PAID`);
+  } catch (error) {
+    console.error(error);
+    alert("Error updating status.");
+  }
+};
