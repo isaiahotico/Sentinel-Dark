@@ -1,241 +1,116 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+// app.js
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc,
-  query, orderBy, limit, onSnapshot, serverTimestamp, doc, updateDoc, getDoc, setDoc
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import {
-  getDatabase, ref, push, set, onDisconnect, onValue
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  getFirestore, collection, doc, setDoc, getDoc, addDoc,
+  onSnapshot, updateDoc, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js";
 
-/* ----------------- Firebase Setup ----------------- */
-const firebaseConfig={
-  apiKey:"AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
-  authDomain:"paper-house-inc.firebaseapp.com",
-  projectId:"paper-house-inc",
-  messagingSenderId:"658389836376",
-  appId:"1:658389836376:web:2ab1e2743c593f4ca8e02d"
-};
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
-const rdb=getDatabase(app);
-
-/* ----------------- User Setup ----------------- */
-let username="Guest-"+Math.floor(Math.random()*9000+1000);
-if(window.Telegram?.WebApp?.initDataUnsafe?.user?.username){
-  username="@"+Telegram.WebApp.initDataUnsafe.user.username;
-}
-
-/* ----------------- Presence ----------------- */
-const myRef=push(ref(rdb,"presence"));
-function heartbeat(){ set(myRef,{username,lastActive:Date.now()}); }
-heartbeat();
-setInterval(heartbeat,30000);
-onDisconnect(myRef).remove();
-
-/* ----------------- Image compression ----------------- */
-function compressImage(file){
-  return new Promise(res=>{
-    const img=new Image();
-    const reader=new FileReader();
-    reader.onload=e=>{
-      img.src=e.target.result;
-      img.onload=()=>{
-        const c=document.createElement("canvas");
-        const max=1024;
-        let w=img.width,h=img.height;
-        if(w>h&&w>max){h*=max/w;w=max}
-        else if(h>max){w*=max/h;h=max}
-        c.width=w;c.height=h;
-        c.getContext("2d").drawImage(img,0,0,w,h);
-        res(c.toDataURL("image/jpeg",0.6));
-      };
-    };
-    reader.readAsDataURL(file);
-  });
-}
-const toBase64=f=>new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f); });
-
-/* ----------------- Rate Limit ----------------- */
-let sentTimes=[];
-
-/* ----------------- Persistent Balance ----------------- */
-const balanceDisplay=document.getElementById("balanceDisplay");
-const balanceDocRef = doc(db, "balances", username);
-let balance = 0;
-
-// Load or create balance
-async function loadBalance(){
-  const snap = await getDoc(balanceDocRef);
-  if(snap.exists()){
-    balance = snap.data().amount;
-  } else {
-    balance = 0;
-    await setDoc(balanceDocRef, { amount: 0 });
-  }
-  balanceDisplay.innerText = balance.toFixed(2);
-}
-loadBalance();
-
-// Listen for real-time balance updates
-onSnapshot(balanceDocRef, snap=>{
-  if(snap.exists()){
-    balance = snap.data().amount;
-    balanceDisplay.innerText = balance.toFixed(2);
-  }
-});
-
-// Credit balance and persist
-async function creditBalance(amount){
-  balance += amount;
-  balanceDisplay.innerText = balance.toFixed(2);
-  await setDoc(balanceDocRef, { amount: balance });
-}
-
-/* ----------------- Chat ----------------- */
-const chatBox=document.getElementById("chat");
-let autoScroll=true;
-
-chatBox.addEventListener('scroll',()=>{
-  const scrollBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight;
-  autoScroll = scrollBottom < 20; // if near bottom, keep auto scroll
-});
-
-document.getElementById("send").onclick=async()=>{
-  // 1️⃣ Show rewarded ad
-  try{
-    await show_10276123();
-    alert('You have seen an ad!');
-    await creditBalance(0.02);
-  }catch(e){}
-
-  // 2️⃣ Send chat
-  const text=message.value.trim();
-  const imgs=[...images.files].slice(0,5);
-  const aud=audio.files[0];
-  if(!text && imgs.length===0 && !aud) return;
-
-  const now=Date.now();
-  sentTimes=sentTimes.filter(t=>now-t<60000);
-  if(sentTimes.length>=5){alert("Limit 5 msgs/min");return;}
-  sentTimes.push(now);
-
-  let img64=[], aud64=null;
-  for(const f of imgs) img64.push(await compressImage(f));
-  if(aud && aud.size<250000) aud64=await toBase64(aud);
-
-  await addDoc(collection(db,"globalChat"),{user:username,text,images:img64,audio:aud64,time:serverTimestamp(),reactions:{}});
-  
-  message.value=""; images.value=""; audio.value="";
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
+  authDomain: "paper-house-inc.firebaseapp.com",
+  projectId: "paper-house-inc",
+  storageBucket: "paper-house-inc.firebasestorage.app",
+  messagingSenderId: "658389836376",
+  appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
 };
 
-/* ----------------- Chat Display + Reactions ----------------- */
-onSnapshot(query(collection(db,"globalChat"),orderBy("time"),limit(5000)),snap=>{
-  chatBox.innerHTML="";
-  snap.forEach(d=>{
-    const m=d.data();
-    const div=document.createElement("div");
-    div.className="msg";
-    let reactionsHTML="";
-    for(const r of ["❤️","👍"]){
-      reactionsHTML+=`<span style="cursor:pointer;margin-left:4px;" onclick="react('${d.id}','${r}')">${r} ${m.reactions?.[r]||0}</span>`;
-    }
-    div.innerHTML=`
-      <div class="user">👤 ${m.user}</div>
-      ${m.text?`<div>${m.text}</div>`:""}
-      ${(m.images||[]).map(i=>`<img src="${i}">`).join("")}
-      ${m.audio?`<audio controls src="${m.audio}"></audio>`:""}
-      <div class="reactions">${reactionsHTML}</div>
-    `;
-    chatBox.appendChild(div);
-  });
-  if(autoScroll){
-    chatBox.scrollTo({top:chatBox.scrollHeight,behavior:'smooth'});
-  }
-});
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-window.react=async(mid,emoji)=>{
-  const msgRef=doc(db,"globalChat",mid);
-  const snap=await getDoc(msgRef);
-  let data=snap.data();
-  if(!data.reactions) data.reactions={};
-  data.reactions[emoji]=(data.reactions[emoji]||0)+1;
-  await updateDoc(msgRef,{reactions:data.reactions});
-};
+// Telegram Web App
+let USER_ID = "";
+let TELEGRAM_USERNAME = "";
+if (window.Telegram.WebApp) {
+  const tgUser = Telegram.WebApp.initDataUnsafe.user;
+  USER_ID = tgUser.id.toString();
+  TELEGRAM_USERNAME = tgUser.username || "NoUsername";
 
-/* ----------------- Online Users ----------------- */
-let users=[],page=0,PER_PAGE=15;
-const usersBox=document.getElementById("users");
-onValue(ref(rdb,"presence"),snap=>{
-  users=[];
-  const now=Date.now();
-  snap.forEach(c=>{
-    const u=c.val();
-    if(now-u.lastActive<=3600000) users.push(u);
-  });
-  renderUsers();
-});
-function renderUsers(){
-  usersBox.innerHTML="";
-  users.slice(page*PER_PAGE,(page+1)*PER_PAGE).forEach(u=>{
-    const online=(Date.now()-u.lastActive<120000);
-    usersBox.innerHTML+=`<div class="userItem"><span>${u.username}</span><span class="${online?"online":"active"}">${online?"Online":"Active"}</span></div>`;
-  });
+  registerUser(USER_ID, TELEGRAM_USERNAME);
+  listenUser(USER_ID);
+} else {
+  alert("Open inside Telegram Web App!");
 }
-document.getElementById("next").onclick=()=>{if((page+1)*PER_PAGE<users.length){page++;renderUsers();}};
-document.getElementById("prev").onclick=()=>{if(page>0){page--;renderUsers();}};
 
-/* ----------------- Withdrawals ----------------- */
-const wtbody=document.getElementById("withdrawals");
-onSnapshot(query(collection(db,"withdrawals"),orderBy("time")),snap=>{
-  wtbody.innerHTML="";
-  snap.forEach(d=>{
-    const w=d.data();
-    if(w.user===username){
-      wtbody.innerHTML+=`<tr><td>${w.amount}</td><td>${w.status}</td></tr>`;
-    }
-  });
-});
-
-document.getElementById("requestWithdraw").onclick=async()=>{
-  const amount=balance;
-  if(amount<=0){alert("No balance"); return;}
-  // Add withdrawal
-  await addDoc(collection(db,"withdrawals"),{user:username,amount,status:"Pending",time:serverTimestamp()});
-  // Reset balance in Firestore
-  balance = 0;
-  await setDoc(balanceDocRef,{amount:0});
-  balanceDisplay.innerText = balance.toFixed(2);
-  alert("Withdrawal requested!");
-};
-
-/* ----------------- Owner Dashboard ----------------- */
-const ownerPanel=document.getElementById("ownerPanel");
-document.getElementById("ownerLogin").onclick=()=>{
-  const pass=document.getElementById("ownerPass").value;
-  if(pass==="Propetas6"){
-    document.getElementById("ownerContent").style.display="block";
-    // Live sync all withdrawals
-    onSnapshot(query(collection(db,"withdrawals"),orderBy("time")),snap=>{
-      const tbody=document.getElementById("ownerWithdrawals");
-      tbody.innerHTML="";
-      snap.forEach(d=>{
-        const w=d.data();
-        tbody.innerHTML+=`<tr>
-          <td>${w.user}</td><td>${w.amount}</td><td>${w.status}</td>
-          <td>
-            <button onclick="approve('${d.id}')">Paid</button>
-            <button onclick="deny('${d.id}')">Deny</button>
-          </td>
-        </tr>`;
-      });
+// --- USER FUNCTIONS ---
+async function registerUser(userId, username) {
+  const userRef = doc(db, "users", userId);
+  const docSnap = await getDoc(userRef);
+  if (!docSnap.exists()) {
+    await setDoc(userRef, {
+      username: username,
+      balance: 500000,
+      createdAt: new Date()
     });
-  } else {alert("Wrong password");}
-};
+  }
+}
 
-// Approve / Deny withdrawals
-window.approve=async(id)=>{
-  await updateDoc(doc(db,"withdrawals",id),{status:"Paid"});
-};
-window.deny=async(id)=>{
-  await updateDoc(doc(db,"withdrawals",id),{status:"Denied"});
-};
+function listenUser(userId) {
+  const userRef = doc(db, "users", userId);
+  onSnapshot(userRef, (docSnap) => {
+    const data = docSnap.data();
+    if (data) {
+      document.getElementById("username").innerText = `👤 ${data.username}`;
+      document.getElementById("balance").innerText = `Balance: ₱${data.balance}`;
+    }
+  });
+}
+
+async function requestWithdrawal(userId) {
+  const amount = parseInt(document.getElementById("withdrawAmount").value);
+  const gcashNumber = document.getElementById("gcashNumber").value.trim();
+  if (!amount || !gcashNumber) return alert("Enter valid amount & GCash number");
+
+  const userRef = doc(db, "users", userId);
+  const userSnap = await getDoc(userRef);
+  const userBalance = userSnap.data().balance;
+
+  if (amount > userBalance) return alert("Insufficient balance");
+
+  await addDoc(collection(db, "withdrawals"), {
+    userId,
+    username: userSnap.data().username,
+    amount,
+    gcashNumber,
+    status: "pending",
+    requestedAt: new Date()
+  });
+
+  await updateDoc(userRef, { balance: userBalance - amount });
+  alert("💰 Withdrawal requested! Waiting for approval.");
+}
+
+document.getElementById("withdrawBtn").addEventListener("click", () => requestWithdrawal(USER_ID));
+
+// --- OWNER FUNCTIONS ---
+function ownerLogin() {
+  const pass = document.getElementById("ownerPassword").value;
+  if (pass !== "Propetas6") return alert("Incorrect password");
+  alert("🔑 Owner logged in!");
+  listenWithdrawals();
+}
+
+document.getElementById("ownerLoginBtn").addEventListener("click", ownerLogin);
+
+function listenWithdrawals() {
+  const q = query(collection(db, "withdrawals"), orderBy("requestedAt", "desc"));
+  onSnapshot(q, (snapshot) => {
+    const list = document.getElementById("withdrawalsList");
+    list.innerHTML = "";
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <span>👤 ${data.username} - ₱${data.amount} - ${data.status}</span>
+        ${data.status === "pending" ? `<button class="btn" onclick="markPaid('${docSnap.id}', '${data.userId}', ${data.amount})">✅ Mark Paid</button>` : ""}
+      `;
+      list.appendChild(li);
+    });
+  });
+}
+
+// Mark withdrawal as paid
+window.markPaid = async function(withdrawalId, userId, amount) {
+  await updateDoc(doc(db, "withdrawals", withdrawalId), { status: "paid" });
+  alert(`💸 Withdrawal ₱${amount} marked as PAID`);
+}
