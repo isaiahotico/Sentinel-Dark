@@ -5,7 +5,7 @@
 <title>Telegram Mini Bank</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Monetag SDK -->
+<!-- Monetag -->
 <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
 
 <style>
@@ -16,27 +16,28 @@ button{width:100%;padding:10px;border-radius:10px;border:none;margin-top:8px;fon
 .blue{background:#38bdf8;color:#000}
 .green{background:#22c55e;color:#000}
 .red{background:#f87171;color:#000}
+input{width:100%;padding:10px;border-radius:10px;border:none}
 table{width:100%;font-size:12px}
 td,th{padding:6px;border-bottom:1px solid #334155}
 .hidden{display:none}
 </style>
-
-<!-- FAST Telegram username (instant, before Firebase loads) -->
-<script>
-const tg = window.Telegram?.WebApp;
-if (tg?.initDataUnsafe?.user?.username) {
-  document.addEventListener("DOMContentLoaded",()=>{
-    document.getElementById("username").innerText =
-      tg.initDataUnsafe.user.username;
-  });
-}
-</script>
 </head>
 
 <body>
 <div class="container">
 
-<h3>👤 <span id="username">Guest</span></h3>
+<!-- 🔐 LOGIN SCREEN -->
+<div id="loginCard" class="card hidden">
+  <h3>🔐 Choose Username</h3>
+  <input id="loginUsername" placeholder="Enter username">
+  <button class="green" onclick="login()">Continue</button>
+</div>
+
+<!-- 🏦 MAIN APP -->
+<div id="appCard" class="hidden">
+
+<h3>👤 <span id="username"></span></h3>
+<button class="red" onclick="logout()">Logout</button>
 
 <div class="card">
 <h2>Balance: ₱<span id="balance">0.00</span></h2>
@@ -46,7 +47,7 @@ if (tg?.initDataUnsafe?.user?.username) {
 
 <div class="card">
 <h3>Withdraw (GCash)</h3>
-<input id="gcash" placeholder="GCash Number" style="width:100%;padding:8px">
+<input id="gcash" placeholder="GCash Number">
 <button class="green" onclick="withdraw()">Withdraw</button>
 </div>
 
@@ -69,6 +70,7 @@ if (tg?.initDataUnsafe?.user?.username) {
 </table>
 </div>
 
+</div>
 </div>
 
 <script type="module" src="app.js"></script>
