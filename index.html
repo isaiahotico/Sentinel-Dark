@@ -5,6 +5,9 @@
 <title>Telegram Mini Bank</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- Monetag SDK -->
+<script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
+
 <style>
 body {
   font-family: Arial, sans-serif;
@@ -14,15 +17,15 @@ body {
 }
 .card {
   max-width: 420px;
-  margin: 20px auto;
+  margin: 16px auto;
   background: #020617;
-  padding: 20px;
+  padding: 16px;
   border-radius: 14px;
 }
 input, button {
   width: 100%;
   padding: 12px;
-  margin-top: 10px;
+  margin-top: 8px;
   border-radius: 10px;
   border: none;
 }
@@ -33,7 +36,6 @@ button {
 }
 .hidden { display: none; }
 
-.balance-change { color: #22c55e; }
 .status-pending { color: #facc15; }
 .status-paid { color: #22c55e; font-weight: bold; }
 
@@ -62,14 +64,28 @@ td, th { padding: 4px; }
 <!-- BANK -->
 <div class="card hidden" id="bankCard">
   <h2 id="usernameDisplay">👤</h2>
-  <h3 id="balance" data-old="500000">Balance: ₱500000</h3>
+  <h3 id="balance" data-old="0">Balance: ₱0.00</h3>
 
+  <hr>
+  <h3>🎁 Earn Balance</h3>
+  <button id="signinAdsBtn">Sign in (Ads)</button>
+  <button id="giftAdsBtn">Gift Ads</button>
+  <button id="viewAdsBtn">View Ads</button>
+  <button id="viewAds2Btn">View Ads #2</button>
+
+  <small>
+    • Sign in ads: every 12 hours<br>
+    • Gift ads: every 3 hours<br>
+    • View ads: every 5 minutes
+  </small>
+
+  <hr>
+  <h3>💸 Withdraw</h3>
   <input id="withdrawAmount" type="number" placeholder="Withdraw amount">
   <input id="gcashNumber" placeholder="GCash number">
   <button id="withdrawBtn">Withdraw</button>
 
   <hr>
-
   <h3>📄 Your Withdrawals</h3>
   <table>
     <thead>
