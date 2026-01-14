@@ -18,49 +18,43 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Telegram Web App
-let USER_ID = "";
-let TELEGRAM_USERNAME = "";
-if (window.Telegram.WebApp) {
-  const tgUser = Telegram.WebApp.initDataUnsafe.user;
-  USER_ID = tgUser.id.toString();
-  TELEGRAM_USERNAME = tgUser.username || "NoUsername";
+let USERNAME = "";
+let USER_DOC_ID = "";
 
-  // Display username immediately
-  document.getElementById("username").innerText = `👤 ${TELEGRAM_USERNAME}`;
+// --- CREATE USER ACCOUNT ---
+document.getElementById("createUsernameBtn").addEventListener("click", async () => {
+  const usernameInput = document.getElementById("inputUsername").value.trim();
+  if (!usernameInput) return alert("Enter a valid username");
 
-  registerUser(USER_ID, TELEGRAM_USERNAME);
-  listenUser(USER_ID);
-} else {
-  alert("Open inside Telegram Web App!");
-}
-
-// --- USER FUNCTIONS ---
-async function registerUser(userId, username) {
-  const userRef = doc(db, "users", userId);
+  const userRef = doc(db, "users", usernameInput);
   const docSnap = await getDoc(userRef);
-  if (!docSnap.exists()) {
-    await setDoc(userRef, {
-      username: username,
-      balance: 500000,
-      createdAt: new Date()
-    });
-  } else {
-    // Sync Telegram username if changed
-    if (docSnap.data().username !== username) {
-      await updateDoc(userRef, { username: username });
-    }
-  }
-}
+  if (docSnap.exists()) return alert("Username already taken");
 
-function listenUser(userId) {
-  const userRef = doc(db, "users", userId);
+  // Create user
+  await setDoc(userRef, { username: usernameInput, balance: 500000, createdAt: new Date() });
+  USERNAME = usernameInput;
+  USER_DOC_ID = usernameInput;
+
+  // Hide username card, show bank
+  document.getElementById("usernameCard").style.display = "none";
+  document.getElementById("bankCard").style.display = "block";
+
+  document.getElementById("usernameDisplay").innerText = `👤 ${USERNAME}`;
+  document.getElementById("balance").innerText = `Balance: ₱500000`;
+  document.getElementById("balance").setAttribute("data-old", "500000");
+
+  listenUser(USER_DOC_ID);
+});
+
+// --- LISTEN USER DATA ---
+function listenUser(docId) {
+  const userRef = doc(db, "users", docId);
   onSnapshot(userRef, (docSnap) => {
     const data = docSnap.data();
     if (!data) return;
 
-    // Animate username
-    const usernameEl = document.getElementById("username");
+    // Animate username if changed
+    const usernameEl = document.getElementById("usernameDisplay");
     if (usernameEl.innerText !== `👤 ${data.username}`) {
       usernameEl.classList.add("username-change");
       usernameEl.innerText = `👤 ${data.username}`;
@@ -77,7 +71,7 @@ function listenUser(userId) {
   });
 }
 
-// Animate number for balance
+// --- BALANCE ANIMATION ---
 function animateValue(element, start, end, duration) {
   let startTimestamp = null;
   const step = (timestamp) => {
@@ -85,9 +79,8 @@ function animateValue(element, start, end, duration) {
     const progress = Math.min((timestamp - startTimestamp) / duration, 1);
     const value = Math.floor(progress * (end - start) + start);
     element.innerText = `Balance: ₱${value}`;
-    if (progress < 1) {
-      window.requestAnimationFrame(step);
-    } else {
+    if (progress < 1) window.requestAnimationFrame(step);
+    else {
       element.innerText = `Balance: ₱${end}`;
       element.classList.add("balance-change");
       setTimeout(() => element.classList.remove("balance-change"), 800);
@@ -97,20 +90,19 @@ function animateValue(element, start, end, duration) {
 }
 
 // --- WITHDRAWAL ---
-async function requestWithdrawal(userId) {
+document.getElementById("withdrawBtn").addEventListener("click", async () => {
   const amount = parseInt(document.getElementById("withdrawAmount").value);
   const gcashNumber = document.getElementById("gcashNumber").value.trim();
   if (!amount || !gcashNumber) return alert("Enter valid amount & GCash number");
 
-  const userRef = doc(db, "users", userId);
+  const userRef = doc(db, "users", USER_DOC_ID);
   const userSnap = await getDoc(userRef);
   const userBalance = userSnap.data().balance;
-
   if (amount > userBalance) return alert("Insufficient balance");
 
   await addDoc(collection(db, "withdrawals"), {
-    userId,
-    username: userSnap.data().username,
+    userId: USER_DOC_ID,
+    username: USERNAME,
     amount,
     gcashNumber,
     status: "pending",
@@ -119,19 +111,15 @@ async function requestWithdrawal(userId) {
 
   await updateDoc(userRef, { balance: userBalance - amount });
   alert("💰 Withdrawal requested! Waiting for approval.");
-}
-
-document.getElementById("withdrawBtn").addEventListener("click", () => requestWithdrawal(USER_ID));
+});
 
 // --- OWNER DASHBOARD ---
-function ownerLogin() {
+document.getElementById("ownerLoginBtn").addEventListener("click", () => {
   const pass = document.getElementById("ownerPassword").value;
   if (pass !== "Propetas6") return alert("Incorrect password");
   alert("🔑 Owner logged in!");
   listenWithdrawals();
-}
-
-document.getElementById("ownerLoginBtn").addEventListener("click", ownerLogin);
+});
 
 function listenWithdrawals() {
   const q = query(collection(db, "withdrawals"), orderBy("requestedAt", "desc"));
@@ -150,7 +138,7 @@ function listenWithdrawals() {
   });
 }
 
-// Mark Paid
+// --- MARK PAID ---
 window.markPaid = async function(withdrawalId, userId, amount) {
   await updateDoc(doc(db, "withdrawals", withdrawalId), { status: "paid" });
   alert(`💸 Withdrawal ₱${amount} marked as PAID`);
