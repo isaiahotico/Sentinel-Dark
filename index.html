@@ -9,108 +9,55 @@
 <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #0f172a;
-  color: white;
-  margin: 0;
-}
-.card {
-  max-width: 420px;
-  margin: 16px auto;
-  background: #020617;
-  padding: 16px;
-  border-radius: 14px;
-}
-input, button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 8px;
-  border-radius: 10px;
-  border: none;
-}
-button {
-  background: #2563eb;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.hidden { display: none; }
-
-.status-pending { color: #facc15; }
-.status-paid { color: #22c55e; font-weight: bold; }
-
-table { width: 100%; font-size: 13px; margin-top: 10px; }
-td, th { padding: 4px; }
-
-.flash-paid {
-  animation: paidFlash 1s ease-in-out;
-}
-@keyframes paidFlash {
-  from { background: #064e3b; }
-  to { background: transparent; }
-}
+body{margin:0;font-family:Arial;background:#0f172a;color:#fff}
+.container{max-width:420px;margin:auto;padding:16px}
+.card{background:#020617;padding:14px;border-radius:12px;margin-bottom:12px}
+button{width:100%;padding:10px;border-radius:10px;border:none;margin-top:8px;font-weight:bold}
+.green{background:#22c55e;color:#000}
+.blue{background:#38bdf8;color:#000}
+.red{background:#f87171;color:#000}
+table{width:100%;font-size:12px}
+td,th{padding:6px;border-bottom:1px solid #334155}
+.hidden{display:none}
 </style>
 </head>
 
 <body>
+<div class="container">
 
-<!-- CREATE USER -->
-<div class="card" id="usernameCard">
-  <h2>Create Username</h2>
-  <input id="inputUsername" placeholder="Enter username">
-  <button id="createUsernameBtn">Create Account</button>
-</div>
+<h3>👤 <span id="username">Loading...</span></h3>
 
-<!-- BANK -->
-<div class="card hidden" id="bankCard">
-  <h2 id="usernameDisplay">👤</h2>
-  <h3 id="balance" data-old="0">Balance: ₱0.00</h3>
-
-  <hr>
-  <h3>🎁 Earn Balance</h3>
-  <button id="signinAdsBtn">Sign in (Ads)</button>
-  <button id="giftAdsBtn">Gift Ads</button>
-  <button id="viewAdsBtn">View Ads</button>
-  <button id="viewAds2Btn">View Ads #2</button>
-
-  <small>
-    • Sign in ads: every 12 hours<br>
-    • Gift ads: every 3 hours<br>
-    • View ads: every 5 minutes
-  </small>
-
-  <hr>
-  <h3>💸 Withdraw</h3>
-  <input id="withdrawAmount" type="number" placeholder="Withdraw amount">
-  <input id="gcashNumber" placeholder="GCash number">
-  <button id="withdrawBtn">Withdraw</button>
-
-  <hr>
-  <h3>📄 Your Withdrawals</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Amount</th>
-        <th>GCash</th>
-        <th>Status</th>
-        <th>Receipt</th>
-      </tr>
-    </thead>
-    <tbody id="userWithdrawTable"></tbody>
-  </table>
-</div>
-
-<!-- OWNER -->
 <div class="card">
-  <h3>Owner Dashboard</h3>
-  <input id="ownerPassword" type="password" placeholder="Password">
-  <button id="ownerLoginBtn">Login</button>
-  <ul id="withdrawalsList"></ul>
+<h2>Balance: ₱<span id="balance">0.00</span></h2>
+<button class="blue" onclick="dailySignin()">Daily Sign In ₱0.02</button>
+<button class="blue" onclick="showAds()">Ads ₱0.04</button>
+</div>
+
+<div class="card">
+<h3>Withdraw (GCash)</h3>
+<input id="gcash" placeholder="GCash Number" style="width:100%;padding:8px">
+<button class="green" onclick="withdraw()">Withdraw</button>
+</div>
+
+<div class="card">
+<h3>Withdrawals</h3>
+<table>
+<thead><tr><th>Amount</th><th>Status</th></tr></thead>
+<tbody id="withdrawTable"></tbody>
+</table>
+</div>
+
+<button class="red" onclick="ownerLogin()">Owner Dashboard</button>
+
+<div id="owner" class="card hidden">
+<h3>Owner Dashboard</h3>
+<p>Total Paid: ₱<span id="totalPaid">0.00</span></p>
+<table>
+<thead><tr><th>User</th><th>Amount</th><th>Action</th></tr></thead>
+<tbody id="ownerTable"></tbody>
+</table>
+</div>
+
 </div>
 
 <script type="module" src="app.js"></script>
