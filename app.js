@@ -1,13 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc,
-  query, orderBy, limit, onSnapshot, serverTimestamp
+  query, orderBy, limit, onSnapshot, serverTimestamp, doc, updateDoc
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import {
   getDatabase, ref, push, set, onDisconnect, onValue
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-/* 🔥 Firebase config */
+/* 🔹 Firebase config */
 const firebaseConfig={
   apiKey:"AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
   authDomain:"paper-house-inc.firebaseapp.com",
@@ -20,22 +20,20 @@ const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 const rdb=getDatabase(app);
 
-/* 👤 Username auto-detect */
+/* 👤 Username auto-detect (Telegram) */
 let username="Guest-"+Math.floor(Math.random()*9000+1000);
 if(window.Telegram?.WebApp?.initDataUnsafe?.user?.username){
   username="@"+Telegram.WebApp.initDataUnsafe.user.username;
 }
 
-/* 🟢 Presence system */
+/* 🟢 Presence */
 const myRef=push(ref(rdb,"presence"));
-function heartbeat(){
-  set(myRef,{username,lastActive:Date.now()});
-}
+function heartbeat(){ set(myRef,{username,lastActive:Date.now()}); }
 heartbeat();
 setInterval(heartbeat,30000);
 onDisconnect(myRef).remove();
 
-/* 🧠 Image compression (Canvas) */
+/* 🧠 Image compression */
 function compressImage(file){
   return new Promise(res=>{
     const img=new Image();
@@ -56,74 +54,88 @@ function compressImage(file){
     reader.readAsDataURL(file);
   });
 }
+const toBase64=f=>new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f); });
 
-const toBase64=f=>new Promise(r=>{
-  const fr=new FileReader();
-  fr.onload=()=>r(fr.result);
-  fr.readAsDataURL(f);
-});
-
-/* ⏱ Rate limit */
+/* 🔥 Rate limit */
 let sentTimes=[];
 
-/* 📤 Send message */
-document.getElementById("send").onclick=async()=>{
-  const text=message.value.trim();
-  const imgs=[...images.files].slice(0,5);
-  const aud=audio.files[0];
-
-  if(!text && imgs.length===0 && !aud) return;
-
-  const now=Date.now();
-  sentTimes=sentTimes.filter(t=>now-t<60000);
-  if(sentTimes.length>=5){alert("Limit: 5 messages per minute");return;}
-  sentTimes.push(now);
-
-  let img64=[], aud64=null;
-
-  for(const f of imgs){
-    img64.push(await compressImage(f));
-  }
-
-  if(aud){
-    if(aud.size>250000){alert("MP3 too large");return;}
-    aud64=await toBase64(aud);
-  }
-
-  await addDoc(collection(db,"globalChat"),{
-    user:username,
-    text,
-    images:img64,
-    audio:aud64,
-    time:serverTimestamp()
-  });
-
-  message.value=""; images.value=""; audio.value="";
-};
-
-/* 💬 Chat listener */
+/* 💬 Chat + Reactions */
+const chatBox=document.getElementById("chat");
 onSnapshot(
   query(collection(db,"globalChat"),orderBy("time"),limit(5000)),
   snap=>{
-    chat.innerHTML="";
+    chatBox.innerHTML="";
     snap.forEach(d=>{
       const m=d.data();
       const div=document.createElement("div");
       div.className="msg";
+      let reactionsHTML="";
+      let reactionMap=m.reactions||{};
+      for(const r of ["❤️","👍"]){
+        reactionsHTML+=`<span style="cursor:pointer" onclick="react('${d.id}','${r}')">${r} ${reactionMap[r]||0}</span>`;
+      }
       div.innerHTML=`
         <div class="user">👤 ${m.user}</div>
         ${m.text?`<div>${m.text}</div>`:""}
         ${(m.images||[]).map(i=>`<img src="${i}">`).join("")}
         ${m.audio?`<audio controls src="${m.audio}"></audio>`:""}
+        <div class="reactions">${reactionsHTML}</div>
       `;
-      chat.appendChild(div);
+      chatBox.appendChild(div);
     });
-    chat.scrollTop=chat.scrollHeight;
-});
+    chatBox.scrollTop=chatBox.scrollHeight;
+  }
+);
 
-/* 👥 Online users list (1 hour, pagination) */
+/* 🌟 React function */
+window.react=async(mid,emoji)=>{
+  const msgRef=doc(db,"globalChat",mid);
+  const snap=await msgRef.get();
+  let data=snap.data();
+  if(!data.reactions) data.reactions={};
+  data.reactions[emoji]= (data.reactions[emoji]||0)+1;
+  await updateDoc(msgRef,{reactions:data.reactions});
+};
+
+/* 📤 Send with Monetag ad reward */
+document.getElementById("send").onclick=async()=>{
+  // show rewarded popup first
+  try{
+    await show_10276123('pop'); 
+    alert("You earned 0.02 PHP!");
+    // increase balance in Firestore
+    const userBalRef=doc(db,"balances",username);
+    const balSnap=await userBalRef.get();
+    let bal=balSnap.exists()?balSnap.data().balance:0;
+    bal+=0.02;
+    await updateDoc(userBalRef,{balance:bal});
+    document.getElementById("balance").innerText=bal.toFixed(2);
+  }catch(e){}
+  
+  // send message logic
+  const text=message.value.trim();
+  const imgs=[...images.files].slice(0,5);
+  const aud=audio.files[0];
+  if(!text && imgs.length===0 && !aud) return;
+
+  const now=Date.now();
+  sentTimes=sentTimes.filter(t=>now-t<60000);
+  if(sentTimes.length>=5){alert("Limit 5 msgs/min");return;}
+  sentTimes.push(now);
+
+  let img64=[], aud64=null;
+  for(const f of imgs) img64.push(await compressImage(f));
+  if(aud && aud.size<250000) aud64=await toBase64(aud);
+
+  await addDoc(collection(db,"globalChat"),{
+    user:username,text,images:img64,audio:aud64,time:serverTimestamp()
+  });
+  
+  message.value=""; images.value=""; audio.value="";
+};
+
+/* 👥 Users list pagination */
 let users=[],page=0,PER_PAGE=15;
-
 onValue(ref(rdb,"presence"),snap=>{
   users=[];
   const now=Date.now();
@@ -134,7 +146,7 @@ onValue(ref(rdb,"presence"),snap=>{
   onlineCount.innerText=`🟢 ${users.length} online`;
   renderUsers();
 });
-
+const usersBox=document.getElementById("users");
 function renderUsers(){
   usersBox.innerHTML="";
   users.slice(page*PER_PAGE,(page+1)*PER_PAGE).forEach(u=>{
@@ -142,17 +154,68 @@ function renderUsers(){
     usersBox.innerHTML+=`
       <div class="userItem">
         <span>${u.username}</span>
-        <span class="${online?"online":"active"}">
-          ${online?"Online":"Active"}
-        </span>
+        <span class="${online?"online":"active"}">${online?"Online":"Active"}</span>
       </div>`;
   });
 }
+document.getElementById("next").onclick=()=>{if((page+1)*PER_PAGE<users.length){page++;renderUsers();}};
+document.getElementById("prev").onclick=()=>{if(page>0){page--;renderUsers();}};
 
-const usersBox=document.getElementById("users");
-document.getElementById("next").onclick=()=>{
-  if((page+1)*PER_PAGE<users.length){page++;renderUsers();}
+/* 💰 Balance & withdrawal */
+async function updateBalance(){
+  const userBalRef=doc(db,"balances",username);
+  const snap=await userBalRef.get();
+  let bal=snap.exists()?snap.data().balance:0;
+  document.getElementById("balance").innerText=bal.toFixed(2);
+}
+updateBalance();
+
+document.getElementById("withdraw").onclick=async()=>{
+  const amount=parseFloat(document.getElementById("balance").innerText);
+  if(amount<=0){alert("No balance"); return;}
+  await addDoc(collection(db,"withdrawals"),{user:username,amount,status:"Pending",time:serverTimestamp()});
+  alert("Withdrawal requested!");
 };
-document.getElementById("prev").onclick=()=>{
-  if(page>0){page--;renderUsers();}
+
+/* Live withdrawal table */
+const wtbody=document.getElementById("withdrawals");
+onSnapshot(query(collection(db,"withdrawals"),orderBy("time")),snap=>{
+  wtbody.innerHTML="";
+  snap.forEach(d=>{
+    const w=d.data();
+    wtbody.innerHTML+=`<tr><td>${w.user}</td><td>${w.amount}</td><td>${w.status}</td></tr>`;
+  });
+});
+
+/* 👑 Owner dashboard */
+document.getElementById("ownerLogin").onclick=()=>{
+  const pass=document.getElementById("ownerPass").value;
+  if(pass==="Propetas6"){
+    document.getElementById("ownerContent").style.display="block";
+    onSnapshot(query(collection(db,"withdrawals"),orderBy("time")),snap=>{
+      const tbody=document.getElementById("ownerWithdrawals");
+      tbody.innerHTML="";
+      snap.forEach(d=>{
+        const w=d.data();
+        tbody.innerHTML+=`
+          <tr>
+            <td>${w.user}</td>
+            <td>${w.amount}</td>
+            <td>${w.status}</td>
+            <td>
+              <button onclick="approve('${d.id}')">Paid</button>
+              <button onclick="deny('${d.id}')">Deny</button>
+            </td>
+          </tr>`;
+      });
+    });
+  } else {alert("Wrong password");}
+};
+
+/* Owner approve/deny */
+window.approve=async(id)=>{
+  await updateDoc(doc(db,"withdrawals",id),{status:"Paid"});
+};
+window.deny=async(id)=>{
+  await updateDoc(doc(db,"withdrawals",id),{status:"Denied"});
 };
