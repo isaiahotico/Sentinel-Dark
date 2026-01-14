@@ -16,7 +16,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Telegram user (REAL-TIME)
+/* ===============================
+   TELEGRAM USER (INSTANT)
+================================ */
 const tg = window.Telegram?.WebApp;
 const user = tg?.initDataUnsafe?.user;
 const uid = user?.id?.toString() || "guest";
@@ -24,87 +26,114 @@ const uname = user?.username || "Guest";
 
 document.getElementById("username").innerText = uname;
 
-const userRef = doc(db,"users",uid);
+const userRef = doc(db, "users", uid);
 
-// Init user instantly
-(async()=>{
+/* ===============================
+   SAFE USER INIT (NO RESET EVER)
+================================ */
+async function ensureUser() {
   const snap = await getDoc(userRef);
-  if(!snap.exists()){
-    await setDoc(userRef,{balance:0,username:uname});
+  if (!snap.exists()) {
+    await setDoc(
+      userRef,
+      { balance: 0, username: uname },
+      { merge: true } // 🔐 CRITICAL
+    );
   }
-})();
+}
+await ensureUser();
 
-// Balance live sync
-onSnapshot(userRef,s=>{
-  balance.textContent = (s.data()?.balance || 0).toFixed(2);
+/* ===============================
+   REAL-TIME BALANCE (NO FLICKER)
+================================ */
+onSnapshot(userRef, (snap) => {
+  if (snap.exists()) {
+    balance.textContent = (snap.data().balance || 0).toFixed(2);
+  }
 });
 
-// Withdrawals live sync
-onSnapshot(collection(db,"withdrawals"),snap=>{
-  withdrawTable.innerHTML="";
-  ownerTable.innerHTML="";
-  let total=0;
+/* ===============================
+   WITHDRAWALS REAL-TIME
+================================ */
+onSnapshot(collection(db, "withdrawals"), (snap) => {
+  withdrawTable.innerHTML = "";
+  ownerTable.innerHTML = "";
+  let total = 0;
 
-  snap.forEach(d=>{
-    const w=d.data();
+  snap.forEach((d) => {
+    const w = d.data();
 
-    if(w.uid===uid){
-      withdrawTable.innerHTML+=
+    if (w.uid === uid) {
+      withdrawTable.innerHTML +=
         `<tr><td>₱${w.amount}</td><td>${w.status}</td></tr>`;
     }
 
-    if(w.status==="PAID") total+=w.amount;
+    if (w.status === "PAID") total += w.amount;
 
-    if(w.status==="PENDING"){
-      ownerTable.innerHTML+=`
-      <tr>
-        <td>${w.username}</td>
-        <td>₱${w.amount}</td>
-        <td><button onclick="approve('${d.id}')">Approve</button></td>
-      </tr>`;
+    if (w.status === "PENDING") {
+      ownerTable.innerHTML += `
+        <tr>
+          <td>${w.username}</td>
+          <td>₱${w.amount}</td>
+          <td><button onclick="approve('${d.id}')">Approve</button></td>
+        </tr>`;
     }
   });
 
-  totalPaid.textContent=total.toFixed(2);
+  totalPaid.textContent = total.toFixed(2);
 });
 
-// ✅ AUTO-CREDIT AFTER AD WATCH
-window.dailySignin = () => {
-  show_10276123().then(async()=>{
-    await updateDoc(userRef,{ balance: increment(0.02) });
+/* ===============================
+   🔥 ADS → SAFE AUTO CREDIT
+================================ */
+window.dailySignin = async () => {
+  await ensureUser(); // ✅ ensures doc exists FIRST
+
+  show_10276123().then(async () => {
+    await updateDoc(userRef, {
+      balance: increment(0.02)
+    });
     alert("Congratulations 🎉 0.02 peso earned");
   });
 };
 
-window.showAds = () => {
-  show_10276123('pop').then(async()=>{
-    await updateDoc(userRef,{ balance: increment(0.04) });
+window.showAds = async () => {
+  await ensureUser(); // ✅ ensures doc exists FIRST
+
+  show_10276123("pop").then(async () => {
+    await updateDoc(userRef, {
+      balance: increment(0.04)
+    });
     alert("Congratulations 🎉 0.04 peso earned");
   });
 };
 
-// ✅ NO MINIMUM WITHDRAW
-window.withdraw = async()=>{
+/* ===============================
+   WITHDRAW (NO MINIMUM)
+================================ */
+window.withdraw = async () => {
   const snap = await getDoc(userRef);
   const bal = snap.data().balance;
 
-  await addDoc(collection(db,"withdrawals"),{
+  await addDoc(collection(db, "withdrawals"), {
     uid,
-    username:uname,
-    amount:bal,
-    status:"PENDING",
-    time:serverTimestamp()
+    username: uname,
+    amount: bal,
+    status: "PENDING",
+    time: serverTimestamp()
   });
 
-  await updateDoc(userRef,{balance:0});
+  await updateDoc(userRef, { balance: 0 });
 };
 
-// Owner
-window.ownerLogin = ()=>{
+/* ===============================
+   OWNER
+================================ */
+window.ownerLogin = () => {
   const p = prompt("Owner password");
-  if(p==="Propetas6") owner.classList.remove("hidden");
+  if (p === "Propetas6") owner.classList.remove("hidden");
 };
 
-window.approve = async(id)=>{
-  await updateDoc(doc(db,"withdrawals",id),{status:"PAID"});
+window.approve = async (id) => {
+  await updateDoc(doc(db, "withdrawals", id), { status: "PAID" });
 };
