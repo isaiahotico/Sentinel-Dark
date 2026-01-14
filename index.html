@@ -12,7 +12,7 @@
     margin:0;
     padding:20px;
   }
-  h2,h3 { margin:5px 0; }
+  h2,h3{ margin:5px 0; transition: all 0.5s ease-in-out; }
   .card {
     background:#1f2937;
     border-radius:12px;
@@ -29,6 +29,7 @@
     font-weight:bold;
     cursor:pointer;
     border:none;
+    transition: background 0.3s;
   }
   .btn:hover { background:#1e40af; }
   input {
@@ -49,14 +50,15 @@
     align-items:center;
     flex-wrap: wrap;
   }
-  li span { margin-right:10px; }
+  .balance-change { color:#34d399; font-weight:bold; }
+  .username-change { color:#fbbf24; font-weight:bold; }
 </style>
 </head>
 <body>
 
 <div class="card">
   <h2 id="username">👤 Loading...</h2>
-  <h3 id="balance">Balance: ₱0</h3>
+  <h3 id="balance" data-old="0">Balance: ₱0</h3>
 
   <input type="number" id="withdrawAmount" placeholder="Enter amount to withdraw">
   <input type="text" id="gcashNumber" placeholder="Enter GCash number">
