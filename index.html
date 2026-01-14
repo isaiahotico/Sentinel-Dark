@@ -37,9 +37,8 @@ body{
   border-bottom:1px solid #1e293b;
 }
 
-/* 🔥 HALF SCREEN CHAT */
 .chat{
-  height:50vh;
+  height:50vh; /* 🔥 half screen */
   overflow-y:auto;
   padding:12px;
 }
@@ -99,7 +98,7 @@ button{
 <div class="container">
 
   <div class="header">
-    <div>🌍 Global Chat</div>
+    <div>🌍 Global Live Chat</div>
     <div id="online">🟢 0 online</div>
   </div>
 
@@ -118,10 +117,8 @@ button{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, query,
-  orderBy, limit, onSnapshot, serverTimestamp,
-  deleteDoc, doc
+  orderBy, limit, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
 import {
   getDatabase, ref, onValue, push, onDisconnect
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
@@ -139,22 +136,37 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* 🔹 Telegram Username Auto Detect */
-let username = "Guest";
+/* 👤 LIVE USERNAME DETECTION */
+let username;
 if (window.Telegram?.WebApp?.initDataUnsafe?.user?.username) {
   username = "@" + Telegram.WebApp.initDataUnsafe.user.username;
 } else {
-  username += Math.floor(Math.random()*9999);
+  username = "Guest-" + Math.floor(1000 + Math.random() * 9000);
 }
+
+/* 🔥 MESSAGE LIMIT SETTINGS */
+const MESSAGE_LIMIT = 5;
+const WINDOW_MS = 60 * 1000;
+let sentTimes = [];
 
 /* 🔹 Firestore Chat */
 const chatCol = collection(db, "globalChat");
 
-/* 🔹 SEND MESSAGE (FIXED) */
+/* 🔹 SEND MESSAGE (ANTI-SPAM) */
 document.getElementById("sendBtn").onclick = async () => {
   const input = document.getElementById("message");
   const text = input.value.trim();
   if (!text) return;
+
+  const now = Date.now();
+  sentTimes = sentTimes.filter(t => now - t < WINDOW_MS);
+
+  if (sentTimes.length >= MESSAGE_LIMIT) {
+    alert("⏳ Slow down — max 5 messages per minute.");
+    return;
+  }
+
+  sentTimes.push(now);
 
   await addDoc(chatCol,{
     user: username,
@@ -166,8 +178,8 @@ document.getElementById("sendBtn").onclick = async () => {
 };
 
 /* 🔹 LIVE CHAT (LAST 5K) */
-const q = query(chatCol, orderBy("time","asc"), limit(5000));
 const chatBox = document.getElementById("chat");
+const q = query(chatCol, orderBy("time","asc"), limit(5000));
 
 onSnapshot(q, snap => {
   chatBox.innerHTML = "";
@@ -185,11 +197,11 @@ onSnapshot(q, snap => {
   chatBox.scrollTop = chatBox.scrollHeight;
 });
 
-/* 🔹 ONLINE COUNT (Realtime DB presence) */
+/* 🟢 ONLINE COUNT (Realtime DB Presence) */
 const rdb = getDatabase(app);
 const presenceRef = ref(rdb,"presence");
 const me = push(presenceRef);
-me.set(true);
+me.set(username);
 onDisconnect(me).remove();
 
 onValue(presenceRef, snap=>{
@@ -197,7 +209,7 @@ onValue(presenceRef, snap=>{
     `🟢 ${snap.size || 0} online`;
 });
 
-/* 🔹 Escape HTML */
+/* 🔐 Escape */
 function escape(t){
   return t.replace(/[&<>"']/g,m=>({
     "&":"&amp;","<":"&lt;",">":"&gt;",
