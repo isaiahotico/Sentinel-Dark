@@ -2,152 +2,215 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Reward Ads System</title>
+<title>🌍 Global Aide Chat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ✅ MONETAG SDK -->
-<script src='//libtl.com/sdk.js'
-        data-zone='10276123'
-        data-sdk='show_10276123'></script>
-
 <style>
+:root{
+  --bg:#0b1220;
+  --card:#020617;
+  --accent:#38bdf8;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+}
+
+*{box-sizing:border-box}
 body{
   margin:0;
-  background:#0f172a;
-  font-family:Arial,Helvetica,sans-serif;
-  color:#fff;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont;
 }
 
 .container{
-  max-width:420px;
-  margin:40px auto;
-  padding:18px;
+  max-width:720px;
+  margin:auto;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
 }
 
-.ad-box{
+.header{
+  padding:14px;
   background:#020617;
-  border-radius:16px;
-  padding:18px;
-  box-shadow:0 0 22px rgba(0,0,0,.45);
+  border-bottom:1px solid #1e293b;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
-.ad-title{
+.chat{
+  flex:1;
+  overflow-y:auto;
+  padding:12px;
+}
+
+.msg{
+  background:var(--card);
+  border-radius:12px;
+  padding:10px 12px;
+  margin-bottom:10px;
+  animation:fadeIn .15s ease;
+}
+
+.user{
   font-size:13px;
-  color:#38bdf8;
-  margin-bottom:6px;
+  color:var(--accent);
 }
 
-.ad-text{
+.text{
   font-size:15px;
-  line-height:1.45;
-  color:#e5e7eb;
+  margin-top:4px;
 }
 
-.ads-btn{
-  margin-top:16px;
-  width:100%;
-  padding:15px;
+.time{
+  font-size:11px;
+  color:var(--muted);
+  margin-top:4px;
+}
+
+.inputBox{
+  display:flex;
+  gap:6px;
+  padding:10px;
+  border-top:1px solid #1e293b;
+  background:#020617;
+}
+
+input{
+  flex:1;
+  padding:10px;
+  border-radius:10px;
   border:none;
-  border-radius:14px;
-  background:linear-gradient(135deg,#22c55e,#16a34a);
+  outline:none;
+  background:#020617;
+  color:#fff;
+}
+
+button{
+  padding:10px 14px;
+  border:none;
+  border-radius:10px;
+  background:var(--accent);
   color:#000;
-  font-size:17px;
-  font-weight:bold;
-  cursor:pointer;
+  font-weight:600;
 }
 
-.ads-btn:active{
-  transform:scale(.96);
-}
-
-.status{
-  margin-top:12px;
-  font-size:13px;
-  color:#94a3b8;
-  text-align:center;
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(5px)}
+  to{opacity:1}
 }
 </style>
 </head>
 
 <body>
-
 <div class="container">
 
-  <!-- ✅ AIDE STYLE TEXT AD -->
-  <div class="ad-box">
-    <div class="ad-title">Sponsored • Earn Rewards</div>
-    <div class="ad-text">
-      Watch a short sponsored ad to earn instant rewards.
-      No registration required. Rewards are limited per session.
-    </div>
+  <div class="header">
+    <div>🌍 Global Live Chat</div>
+    <div id="online">🟢 0 online</div>
+  </div>
 
-    <!-- ✅ ADS BUTTON -->
-    <button class="ads-btn" onclick="showRewardAd()">ADS</button>
+  <div id="chat" class="chat"></div>
 
-    <div class="status" id="statusText">
-      Ready to earn rewards
-    </div>
+  <div class="inputBox">
+    <input id="username" placeholder="👤 Username" disabled>
+    <input id="message" placeholder="Type message..." maxlength="200">
+    <button onclick="send()">Send</button>
   </div>
 
 </div>
 
-<script>
-/* ===============================
-   ✅ REWARDED ADS FUNCTION
-================================ */
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-function showRewardAd(){
-  document.getElementById('statusText').innerText = "Loading ad...";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getDatabase, ref, push, onChildAdded, onValue,
+  serverTimestamp, onDisconnect, remove, query, limitToLast
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-  // ✅ REWARDED POPUP (BEST CPM)
-  show_10276123('pop')
-    .then(() => {
-      rewardUser();
-    })
-    .catch(() => {
+const firebaseConfig = {
+  apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
+  authDomain: "paper-house-inc.firebaseapp.com",
+  projectId: "paper-house-inc",
+  storageBucket: "paper-house-inc.firebasestorage.app",
+  messagingSenderId: "658389836376",
+  appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
+};
 
-      // 🔁 FALLBACK TO INTERSTITIAL
-      show_10276123().then(() => {
-        rewardUser();
-      }).catch(() => {
-        document.getElementById('statusText').innerText =
-          "Ads not available. Try again later.";
-      });
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
+const chatRef = ref(db, "globalChat");
+const presenceRef = ref(db, "presence");
+
+// 🔹 Telegram username auto-detect
+let username = "Guest" + Math.floor(Math.random()*9999);
+if (window.Telegram?.WebApp?.initDataUnsafe?.user?.username) {
+  username = "@" + Telegram.WebApp.initDataUnsafe.user.username;
+}
+document.getElementById("username").value = username;
+
+// 🔹 Online presence
+const userRef = push(presenceRef);
+userRef.set(true);
+onDisconnect(userRef).remove();
+
+// 🔹 Online count
+onValue(presenceRef, snap => {
+  document.getElementById("online").innerText =
+    `🟢 ${snap.size || 0} online`;
+});
+
+// 🔹 Send message
+window.send = () => {
+  const text = document.getElementById("message").value.trim();
+  if(!text) return;
+
+  push(chatRef,{
+    user: username,
+    text,
+    time: serverTimestamp()
+  });
+
+  document.getElementById("message").value = "";
+};
+
+// 🔹 Load last 5,000 messages only
+const chatQuery = query(chatRef, limitToLast(5000));
+const chatBox = document.getElementById("chat");
+
+onChildAdded(chatQuery, snap => {
+  const d = snap.val();
+  const div = document.createElement("div");
+  div.className = "msg";
+  div.innerHTML = `
+    <div class="user">👤 ${escape(d.user)}</div>
+    <div class="text">${escape(d.text)}</div>
+    <div class="time">${new Date().toLocaleTimeString()}</div>
+  `;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+});
+
+// 🔹 Auto-clean older messages
+onValue(chatRef, snap => {
+  if(snap.size > 5000){
+    const excess = snap.size - 5000;
+    let i = 0;
+    snap.forEach(c => {
+      if(i++ < excess) remove(c.ref);
     });
-}
-
-/* ===============================
-   ✅ USER REWARD LOGIC
-================================ */
-
-function rewardUser(){
-  document.getElementById('statusText').innerText =
-    "🎉 Reward received successfully!";
-
-  // 🔧 PUT YOUR REWARD SYSTEM HERE
-  // Example:
-  // userCoins += 10;
-  // updateBalance();
-  // saveToFirebase();
-}
-
-/* ===============================
-   ✅ AUTO IN-APP INTERSTITIAL
-   (NO REWARD – PASSIVE)
-================================ */
-
-show_10276123({
-  type: 'inApp',
-  inAppSettings: {
-    frequency: 2,
-    capping: 0.1,
-    interval: 30,
-    timeout: 5,
-    everyPage: false
   }
 });
-</script>
 
+function escape(t){
+  return t.replace(/[&<>"']/g,m=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",
+    '"':"&quot;","'":"&#039;"
+  }[m]));
+}
+</script>
 </body>
 </html>
