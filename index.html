@@ -11,11 +11,10 @@ body {
   background: #0f172a;
   color: white;
   margin: 0;
-  padding: 0;
 }
 .card {
-  max-width: 400px;
-  margin: 40px auto;
+  max-width: 420px;
+  margin: 20px auto;
   background: #020617;
   padding: 20px;
   border-radius: 14px;
@@ -31,29 +30,29 @@ button {
   background: #2563eb;
   color: white;
   font-weight: bold;
-  cursor: pointer;
 }
-button:disabled {
-  opacity: 0.6;
+.hidden { display: none; }
+
+.balance-change { color: #22c55e; }
+.status-pending { color: #facc15; }
+.status-paid { color: #22c55e; font-weight: bold; }
+
+table { width: 100%; font-size: 13px; margin-top: 10px; }
+td, th { padding: 4px; }
+
+.flash-paid {
+  animation: paidFlash 1s ease-in-out;
 }
-.fade {
-  transition: all 0.5s ease;
-}
-.balance-change {
-  color: #22c55e;
-}
-.username-change {
-  color: #facc15;
-}
-.hidden {
-  display: none;
+@keyframes paidFlash {
+  from { background: #064e3b; }
+  to { background: transparent; }
 }
 </style>
 </head>
 
 <body>
 
-<!-- USERNAME CREATE -->
+<!-- CREATE USER -->
 <div class="card" id="usernameCard">
   <h2>Create Username</h2>
   <input id="inputUsername" placeholder="Enter username">
@@ -65,14 +64,29 @@ button:disabled {
   <h2 id="usernameDisplay">👤</h2>
   <h3 id="balance" data-old="500000">Balance: ₱500000</h3>
 
-  <input id="withdrawAmount" type="number" placeholder="Amount">
-  <input id="gcashNumber" placeholder="GCash Number">
+  <input id="withdrawAmount" type="number" placeholder="Withdraw amount">
+  <input id="gcashNumber" placeholder="GCash number">
   <button id="withdrawBtn">Withdraw</button>
+
+  <hr>
+
+  <h3>📄 Your Withdrawals</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Amount</th>
+        <th>GCash</th>
+        <th>Status</th>
+        <th>Receipt</th>
+      </tr>
+    </thead>
+    <tbody id="userWithdrawTable"></tbody>
+  </table>
 </div>
 
 <!-- OWNER -->
 <div class="card">
-  <h2>Owner Dashboard</h2>
+  <h3>Owner Dashboard</h3>
   <input id="ownerPassword" type="password" placeholder="Password">
   <button id="ownerLoginBtn">Login</button>
   <ul id="withdrawalsList"></ul>
