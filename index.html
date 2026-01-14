@@ -2,45 +2,79 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<title>Telegram Mini Bank</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mini Bank App</title>
+
 <style>
-  body { font-family: 'Segoe UI', sans-serif; background:#0f1727; color:#fff; margin:0; padding:20px; }
-  h2,h3 { margin:5px 0; transition: all 0.5s ease-in-out; }
-  .card { background:#1f2937; border-radius:12px; padding:15px; margin-bottom:15px; }
-  .btn { padding:10px 15px; margin:5px 0; border-radius:8px; background:#2563eb; color:#fff; font-weight:bold; cursor:pointer; border:none; }
-  .btn:hover { background:#1e40af; }
-  input { width:100%; padding:10px; margin:5px 0; border-radius:8px; border:none; }
-  ul { list-style:none; padding-left:0; }
-  li { background:#374151; padding:10px; border-radius:8px; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; }
-  .balance-change { color:#34d399; font-weight:bold; }
-  .username-change { color:#fbbf24; font-weight:bold; }
+body {
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+  margin: 0;
+  padding: 0;
+}
+.card {
+  max-width: 400px;
+  margin: 40px auto;
+  background: #020617;
+  padding: 20px;
+  border-radius: 14px;
+}
+input, button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: none;
+}
+button {
+  background: #2563eb;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.6;
+}
+.fade {
+  transition: all 0.5s ease;
+}
+.balance-change {
+  color: #22c55e;
+}
+.username-change {
+  color: #facc15;
+}
+.hidden {
+  display: none;
+}
 </style>
 </head>
+
 <body>
 
-<!-- USERNAME CREATION -->
+<!-- USERNAME CREATE -->
 <div class="card" id="usernameCard">
-  <h2>Create your username</h2>
-  <input type="text" id="inputUsername" placeholder="Enter a unique username">
-  <button class="btn" id="createUsernameBtn">✅ Create Account</button>
+  <h2>Create Username</h2>
+  <input id="inputUsername" placeholder="Enter username">
+  <button id="createUsernameBtn">Create Account</button>
 </div>
 
-<!-- MINI BANK -->
-<div class="card" id="bankCard" style="display:none;">
-  <h2 id="usernameDisplay">👤 Loading...</h2>
-  <h3 id="balance" data-old="0">Balance: ₱0</h3>
+<!-- BANK -->
+<div class="card hidden" id="bankCard">
+  <h2 id="usernameDisplay">👤</h2>
+  <h3 id="balance" data-old="500000">Balance: ₱500000</h3>
 
-  <input type="number" id="withdrawAmount" placeholder="Enter amount to withdraw">
-  <input type="text" id="gcashNumber" placeholder="Enter GCash number">
-  <button class="btn" id="withdrawBtn">💸 Withdraw</button>
+  <input id="withdrawAmount" type="number" placeholder="Amount">
+  <input id="gcashNumber" placeholder="GCash Number">
+  <button id="withdrawBtn">Withdraw</button>
 </div>
 
-<!-- OWNER DASHBOARD -->
+<!-- OWNER -->
 <div class="card">
   <h2>Owner Dashboard</h2>
-  <input type="password" id="ownerPassword" placeholder="Enter Owner Password">
-  <button class="btn" id="ownerLoginBtn">🔑 Login as Owner</button>
+  <input id="ownerPassword" type="password" placeholder="Password">
+  <button id="ownerLoginBtn">Login</button>
   <ul id="withdrawalsList"></ul>
 </div>
 
