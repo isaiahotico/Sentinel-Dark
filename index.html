@@ -14,12 +14,11 @@
   --muted:#94a3b8;
 }
 
-*{box-sizing:border-box}
 body{
   margin:0;
   background:var(--bg);
   color:var(--text);
-  font-family:system-ui,-apple-system,BlinkMacSystemFont;
+  font-family:system-ui;
 }
 
 .container{
@@ -31,16 +30,16 @@ body{
 }
 
 .header{
-  padding:14px;
+  padding:12px;
   background:#020617;
-  border-bottom:1px solid #1e293b;
   display:flex;
   justify-content:space-between;
-  align-items:center;
+  border-bottom:1px solid #1e293b;
 }
 
+/* 🔥 HALF SCREEN CHAT */
 .chat{
-  flex:1;
+  height:50vh;
   overflow-y:auto;
   padding:12px;
 }
@@ -48,9 +47,8 @@ body{
 .msg{
   background:var(--card);
   border-radius:12px;
-  padding:10px 12px;
+  padding:10px;
   margin-bottom:10px;
-  animation:fadeIn .15s ease;
 }
 
 .user{
@@ -59,8 +57,8 @@ body{
 }
 
 .text{
-  font-size:15px;
   margin-top:4px;
+  font-size:15px;
 }
 
 .time{
@@ -73,8 +71,8 @@ body{
   display:flex;
   gap:6px;
   padding:10px;
-  border-top:1px solid #1e293b;
   background:#020617;
+  border-top:1px solid #1e293b;
 }
 
 input{
@@ -89,16 +87,10 @@ input{
 
 button{
   padding:10px 14px;
-  border:none;
   border-radius:10px;
+  border:none;
   background:var(--accent);
-  color:#000;
   font-weight:600;
-}
-
-@keyframes fadeIn{
-  from{opacity:0;transform:translateY(5px)}
-  to{opacity:1}
 }
 </style>
 </head>
@@ -107,16 +99,15 @@ button{
 <div class="container">
 
   <div class="header">
-    <div>🌍 Global Live Chat</div>
+    <div>🌍 Global Chat</div>
     <div id="online">🟢 0 online</div>
   </div>
 
   <div id="chat" class="chat"></div>
 
   <div class="inputBox">
-    <input id="username" placeholder="👤 Username" disabled>
-    <input id="message" placeholder="Type message..." maxlength="200">
-    <button onclick="send()">Send</button>
+    <input id="message" placeholder="Type message…" maxlength="200">
+    <button id="sendBtn">Send</button>
   </div>
 
 </div>
@@ -126,10 +117,16 @@ button{
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import {
-  getDatabase, ref, push, onChildAdded, onValue,
-  serverTimestamp, onDisconnect, remove, query, limitToLast
+  getFirestore, collection, addDoc, query,
+  orderBy, limit, onSnapshot, serverTimestamp,
+  deleteDoc, doc
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+import {
+  getDatabase, ref, onValue, push, onDisconnect
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
+/* 🔹 Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
   authDomain: "paper-house-inc.firebaseapp.com",
@@ -140,71 +137,67 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const db = getFirestore(app);
 
-const chatRef = ref(db, "globalChat");
-const presenceRef = ref(db, "presence");
-
-// 🔹 Telegram username auto-detect
-let username = "Guest" + Math.floor(Math.random()*9999);
+/* 🔹 Telegram Username Auto Detect */
+let username = "Guest";
 if (window.Telegram?.WebApp?.initDataUnsafe?.user?.username) {
   username = "@" + Telegram.WebApp.initDataUnsafe.user.username;
+} else {
+  username += Math.floor(Math.random()*9999);
 }
-document.getElementById("username").value = username;
 
-// 🔹 Online presence
-const userRef = push(presenceRef);
-userRef.set(true);
-onDisconnect(userRef).remove();
+/* 🔹 Firestore Chat */
+const chatCol = collection(db, "globalChat");
 
-// 🔹 Online count
-onValue(presenceRef, snap => {
-  document.getElementById("online").innerText =
-    `🟢 ${snap.size || 0} online`;
-});
+/* 🔹 SEND MESSAGE (FIXED) */
+document.getElementById("sendBtn").onclick = async () => {
+  const input = document.getElementById("message");
+  const text = input.value.trim();
+  if (!text) return;
 
-// 🔹 Send message
-window.send = () => {
-  const text = document.getElementById("message").value.trim();
-  if(!text) return;
-
-  push(chatRef,{
+  await addDoc(chatCol,{
     user: username,
     text,
     time: serverTimestamp()
   });
 
-  document.getElementById("message").value = "";
+  input.value = "";
 };
 
-// 🔹 Load last 5,000 messages only
-const chatQuery = query(chatRef, limitToLast(5000));
+/* 🔹 LIVE CHAT (LAST 5K) */
+const q = query(chatCol, orderBy("time","asc"), limit(5000));
 const chatBox = document.getElementById("chat");
 
-onChildAdded(chatQuery, snap => {
-  const d = snap.val();
-  const div = document.createElement("div");
-  div.className = "msg";
-  div.innerHTML = `
-    <div class="user">👤 ${escape(d.user)}</div>
-    <div class="text">${escape(d.text)}</div>
-    <div class="time">${new Date().toLocaleTimeString()}</div>
-  `;
-  chatBox.appendChild(div);
+onSnapshot(q, snap => {
+  chatBox.innerHTML = "";
+  snap.forEach(docu => {
+    const d = docu.data();
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `
+      <div class="user">👤 ${escape(d.user)}</div>
+      <div class="text">${escape(d.text)}</div>
+      <div class="time">${new Date().toLocaleTimeString()}</div>
+    `;
+    chatBox.appendChild(div);
+  });
   chatBox.scrollTop = chatBox.scrollHeight;
 });
 
-// 🔹 Auto-clean older messages
-onValue(chatRef, snap => {
-  if(snap.size > 5000){
-    const excess = snap.size - 5000;
-    let i = 0;
-    snap.forEach(c => {
-      if(i++ < excess) remove(c.ref);
-    });
-  }
+/* 🔹 ONLINE COUNT (Realtime DB presence) */
+const rdb = getDatabase(app);
+const presenceRef = ref(rdb,"presence");
+const me = push(presenceRef);
+me.set(true);
+onDisconnect(me).remove();
+
+onValue(presenceRef, snap=>{
+  document.getElementById("online").innerText =
+    `🟢 ${snap.size || 0} online`;
 });
 
+/* 🔹 Escape HTML */
 function escape(t){
   return t.replace(/[&<>"']/g,m=>({
     "&":"&amp;","<":"&lt;",">":"&gt;",
