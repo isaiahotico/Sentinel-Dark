@@ -58,25 +58,29 @@ const toBase64=f=>new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr
 /* Rate limit */
 let sentTimes=[];
 
-/* Ads array for rotation */
-const adTypes=['pop','inApp','interstitial'];
-
 /* Global balance */
 let balance=0;
 const balanceDisplay=document.getElementById("balanceDisplay");
 
+/* Chat box */
+const chatBox=document.getElementById("chat");
+let autoScroll=true;
+
+/* Detect user manual scroll */
+chatBox.addEventListener('scroll',()=>{
+  const scrollBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight;
+  autoScroll = scrollBottom < 20; // If near bottom, keep auto scroll
+});
+
 /* Send button */
 document.getElementById("send").onclick=async()=>{
-  // Random ad selection
-  const adType=adTypes[Math.floor(Math.random()*adTypes.length)];
+  // Monetag rewarded interstitial
   try{
-    if(adType==='pop') await show_10276123('pop');
-    else if(adType==='inApp') await show_10276123({type:'inApp',inAppSettings:{frequency:1,capping:0.1,interval:30,timeout:3,everyPage:false}});
-    else await show_10276123(); // interstitial
-    // reward
+    await show_10276123();
+    alert('You have seen an ad!');
     balance+=0.02;
     balanceDisplay.innerText=balance.toFixed(2);
-  }catch(e){ /* fallback: silently fail */ }
+  }catch(e){}
 
   // send chat
   const text=message.value.trim();
@@ -99,7 +103,6 @@ document.getElementById("send").onclick=async()=>{
 };
 
 /* Chat display + reactions */
-const chatBox=document.getElementById("chat");
 onSnapshot(query(collection(db,"globalChat"),orderBy("time"),limit(5000)),snap=>{
   chatBox.innerHTML="";
   snap.forEach(d=>{
@@ -119,7 +122,9 @@ onSnapshot(query(collection(db,"globalChat"),orderBy("time"),limit(5000)),snap=>
     `;
     chatBox.appendChild(div);
   });
-  chatBox.scrollTop=chatBox.scrollHeight;
+  if(autoScroll){
+    chatBox.scrollTo({top:chatBox.scrollHeight,behavior:'smooth'});
+  }
 });
 
 /* Reaction handler */
@@ -142,7 +147,6 @@ onValue(ref(rdb,"presence"),snap=>{
     const u=c.val();
     if(now-u.lastActive<=3600000) users.push(u);
   });
-  document.getElementById("onlineCount").innerText=`🟢 ${users.length} online`;
   renderUsers();
 });
 function renderUsers(){
@@ -155,12 +159,49 @@ function renderUsers(){
 document.getElementById("next").onclick=()=>{if((page+1)*PER_PAGE<users.length){page++;renderUsers();}};
 document.getElementById("prev").onclick=()=>{if(page>0){page--;renderUsers();}};
 
-/* Withdrawal table (status only) */
+/* Withdrawals table (user only) */
 const wtbody=document.getElementById("withdrawals");
 onSnapshot(query(collection(db,"withdrawals"),orderBy("time")),snap=>{
   wtbody.innerHTML="";
   snap.forEach(d=>{
     const w=d.data();
-    wtbody.innerHTML+=`<tr><td>${w.user}</td><td>${w.status}</td></tr>`;
+    if(w.user===username){
+      wtbody.innerHTML+=`<tr><td>${w.amount}</td><td>${w.status}</td></tr>`;
+    }
   });
 });
+
+/* Request withdrawal */
+document.getElementById("requestWithdraw").onclick=async()=>{
+  const amount=balance;
+  if(amount<=0){alert("No balance"); return;}
+  await addDoc(collection(db,"withdrawals"),{user:username,amount,status:"Pending",time:serverTimestamp()});
+  balance=0;
+  balanceDisplay.innerText=balance.toFixed(2);
+  alert("Withdrawal requested!");
+};
+
+/* Owner dashboard */
+const ownerPanel=document.getElementById("ownerPanel");
+document.getElementById("ownerLogin").onclick=()=>{
+  const pass=document.getElementById("ownerPass").value;
+  if(pass==="Propetas6"){
+    document.getElementById("ownerContent").style.display="block";
+    onSnapshot(query(collection(db,"withdrawals"),orderBy("time")),snap=>{
+      const tbody=document.getElementById("ownerWithdrawals");
+      tbody.innerHTML="";
+      snap.forEach(d=>{
+        const w=d.data();
+        tbody.innerHTML+=`<tr>
+          <td>${w.user}</td><td>${w.amount}</td><td>${w.status}</td>
+          <td>
+            <button onclick="approve('${d.id}')">Paid</button>
+            <button onclick="deny('${d.id}')">Deny</button>
+          </td>
+        </tr>`;
+      });
+    });
+  } else {alert("Wrong password");}
+};
+window.approve=async(id)=>{await updateDoc(doc(db,"withdrawals",id),{status:"Paid"});}
+window.deny=async(id)=>{await updateDoc(doc(db,"withdrawals",id),{status:"Denied"});}
