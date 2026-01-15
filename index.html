@@ -8,16 +8,39 @@
 <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#0f172a;color:#fff}
-.container{max-width:440px;margin:auto;padding:16px}
-.card{background:#020617;padding:14px;border-radius:12px;margin-bottom:12px}
-button{width:100%;padding:10px;border-radius:10px;border:none;margin-top:8px;font-weight:bold}
+body {
+  margin:0;
+  font-family:Arial;
+  background:#f8fafc; /* light mode background */
+  color:#000;          /* light text */
+}
+.container {
+  max-width:440px;
+  margin:auto;
+  padding:16px;
+}
+.card {
+  background:#fff;
+  color:#000;
+  padding:14px;
+  border-radius:12px;
+  margin-bottom:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+button {
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  margin-top:8px;
+  font-weight:bold;
+}
 .blue{background:#38bdf8;color:#000}
 .green{background:#22c55e;color:#000}
 .red{background:#f87171;color:#000}
-.input{width:100%;padding:10px;border-radius:10px;border:none}
+.input{width:100%;padding:10px;border-radius:10px;border:1px solid #ccc}
 table{width:100%;font-size:12px;border-collapse:collapse}
-td,th{padding:6px;border-bottom:1px solid #334155;text-align:left}
+td,th{padding:6px;border-bottom:1px solid #cbd5e1;text-align:left}
 .hidden{display:none}
 .badge{padding:2px 6px;border-radius:6px;font-size:10px}
 .pending{background:#facc15;color:#000}
@@ -28,19 +51,18 @@ td,th{padding:6px;border-bottom:1px solid #334155;text-align:left}
 <body>
 <div class="container">
 
-<!-- LOGIN -->
-<div id="loginCard" class="card hidden">
-  <h3>🔐 Choose Username</h3>
-  <p style="font-size:12px">Maximum 2 accounts per Telegram</p>
+<!-- REGISTER / LOGIN -->
+<div id="loginCard" class="card">
+  <h3>🔐 Register / Login Username</h3>
   <input id="loginUsername" class="input" placeholder="Enter username">
   <button class="green" onclick="login()">Continue</button>
 </div>
 
 <!-- APP -->
-<div id="appCard" class="hidden">
+<div id="appCard" class="card hidden">
 
 <h3>👤 <span id="username"></span></h3>
-<button class="red" onclick="logout()">Switch Account</button>
+<button class="red" onclick="logout()">Logout</button>
 
 <div class="card">
 <h2>Balance: ₱<span id="balance">0.00</span></h2>
