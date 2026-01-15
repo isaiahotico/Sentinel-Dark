@@ -23,8 +23,7 @@ td,th{padding:8px;border-bottom:1px solid #e6eef6;text-align:left;}
 .badge{padding:4px 8px;border-radius:8px;font-size:12px;}
 .pending{background:#facc15;color:#000;}
 .paid{background:#22c55e;color:#000;}
-.available{color:green;font-size:12px;}
-.taken{color:red;font-size:12px;}
+.denied{background:#f87171;color:#000;}
 .owner-actions button{margin-right:6px}
 .owner-actions{display:flex;gap:6px}
 </style>
@@ -57,7 +56,7 @@ td,th{padding:8px;border-bottom:1px solid #e6eef6;text-align:left;}
 
     <div class="card">
       <h3>Withdraw (GCash)</h3>
-      <input id="gcash" class="input" placeholder="GCash Number" />
+      <input id="gcash" class="input" placeholder="Enter GCash Number" />
       <button class="green" id="withdrawBtn">Withdraw</button>
     </div>
 
