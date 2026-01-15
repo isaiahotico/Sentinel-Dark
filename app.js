@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc,
   addDoc, collection, onSnapshot,
-  serverTimestamp, runTransaction, arrayUnion, getDocs, query, orderBy
+  serverTimestamp, runTransaction, arrayUnion, getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -23,7 +23,7 @@ let userRef = null;
 if (!username) showLogin();
 else startApp(username);
 
-/* =============================== LOGIN WITH REFERRAL & LIMIT ============================== */
+/* =============================== LOGIN ============================== */
 window.login = async () => {
   const input = loginUsername.value.trim().toLowerCase();
   if (!input) return alert("Enter username");
@@ -31,7 +31,6 @@ window.login = async () => {
   const referralCode = prompt("Referral code (optional)").trim().toLowerCase();
   if (referralCode && referralCode === input) return alert("Cannot refer yourself");
 
-  // 2 accounts per Telegram
   const tgRef = doc(db, "telegramUsers", telegramId);
   const tgSnap = await getDoc(tgRef);
   if (!tgSnap.exists()) await setDoc(tgRef, { usernames: [input] });
@@ -96,14 +95,20 @@ function listenWithdrawals() {
       const badge = w.status === "PAID" 
         ? `<span class="badge paid">PAID</span>` 
         : `<span class="badge pending">PENDING</span>`;
-      const row = `<tr><td>${date}</td><td>${w.username}</td><td>₱${w.amount}</td><td>${badge}</td></tr>`;
-      if (w.username === username) withdrawTable.innerHTML += row;
-      ownerTable.innerHTML += row; // permanent record
+      const rowUser = `<tr><td>${date}</td><td>${w.username}</td><td>₱${w.amount}</td><td>${badge}</td></tr>`;
+      if (w.username === username) withdrawTable.innerHTML += rowUser;
+
+      // Owner row with Approve / Deny buttons
+      const actionButtons = w.status === "PENDING" 
+        ? `<button onclick="approve('${d.id}')">Approve</button>
+           <button onclick="deny('${d.id}')">Deny</button>`
+        : "";
+      ownerTable.innerHTML += `<tr><td>${date}</td><td>${w.username}</td><td>₱${w.amount}</td><td>${badge}</td><td>${actionButtons}</td></tr>`;
     });
   });
 }
 
-/* =============================== REFERRAL ============================== */
+/* =============================== REFERRALS ============================== */
 function listenReferrals() {
   onSnapshot(collection(db, "referrals"), snap => {
     refTable.innerHTML = "";
@@ -116,23 +121,18 @@ function listenReferrals() {
           ? `<span class="badge paid">CLAIMED</span>` 
           : `<span class="badge pending">UNCLAIMED</span>`;
         refTable.innerHTML += `<tr>
-          <td>${r.invitee}</td>
-          <td>₱${r.withdrawAmount}</td>
-          <td>₱${r.bonus}</td>
-          <td>${status}</td>
+          <td>${r.invitee}</td><td>₱${r.withdrawAmount}</td><td>₱${r.bonus}</td><td>${status}</td>
         </tr>`;
       }
     });
     refCount.innerText = total;
   });
 }
-
 window.toggleReferral = () => referralBox.classList.toggle("hidden");
 
 /* =============================== CLAIM REFERRAL ============================== */
 window.claimReferral = async () => {
-  const q = collection(db, "referrals");
-  const snap = await getDocs(q);
+  const snap = await getDocs(collection(db,"referrals"));
   let totalBonus = 0;
   const docs = [];
 
@@ -180,7 +180,6 @@ async function reward(amount) {
     tx.update(userRef, { balance: snap.data().balance + amount });
   });
 }
-
 window.dailySignin = () => show_10276123().then(()=>reward(0.02).then(()=>alert("🎉 0.02 earned")));
 window.showAds = () => show_10276123("pop").then(()=>reward(0.04).then(()=>alert("🎉 0.04 earned")));
 
@@ -192,7 +191,7 @@ window.withdraw = async () => {
 
   const referrer = snap.data().referrer;
 
-  const withdrawalRef = await addDoc(collection(db,"withdrawals"),{
+  await addDoc(collection(db,"withdrawals"),{
     username,
     amount,
     status:"PENDING",
@@ -201,7 +200,6 @@ window.withdraw = async () => {
 
   await updateDoc(userRef,{balance:0});
 
-  // referral bonus
   if (referrer) {
     const bonus = +(amount*0.10).toFixed(2);
     await addDoc(collection(db,"referrals"),{
@@ -223,7 +221,30 @@ window.logout = () => {
   location.reload();
 };
 
-/* =============================== OWNER ============================== */
+/* =============================== OWNER DASHBOARD ============================== */
 window.ownerLogin = () => {
   if(prompt("Owner password") === "Propetas6") owner.classList.remove("hidden");
+};
+
+window.approve = async (id) => {
+  const wRef = doc(db,"withdrawals",id);
+  const wSnap = await getDoc(wRef);
+  if(!wSnap.exists()) return;
+  const uRef = doc(db,"users", wSnap.data().username);
+  await runTransaction(db, async tx=>{
+    tx.update(uRef,{balance: 0}); // balance already deducted
+    tx.update(wRef,{status:"PAID"});
+  });
+};
+
+window.deny = async (id) => {
+  const wRef = doc(db,"withdrawals",id);
+  const wSnap = await getDoc(wRef);
+  if(!wSnap.exists()) return;
+  const uRef = doc(db,"users", wSnap.data().username);
+  const amount = wSnap.data().amount || 0;
+  await runTransaction(db, async tx=>{
+    tx.update(uRef,{balance: amount}); // return balance to user
+    tx.update(wRef,{status:"DENIED"});
+  });
 };
