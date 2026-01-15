@@ -178,25 +178,84 @@ async function reward(amount){await runTransaction(db,async tx=>{const snap=awai
 dailyBtn.addEventListener("click",()=>show_10276123().then(()=>reward(0.02).then(()=>alert("🎉 0.02 earned"))));
 adsBtn.addEventListener("click",()=>show_10276123("pop").then(()=>reward(0.04).then(()=>alert("🎉 0.04 earned"))));
 
-/* ================= WITHDRAW ================= */
-withdrawBtn.addEventListener("click",async()=>{
-  const snap=await getDoc(userRef);
-  const amount=snap.data().balance;
-  if(amount<=0) return alert("No balance");
-  const referrer=snap.data().referrer;
-  await addDoc(collection(db,"withdrawals"),{username,amount,status:"PENDING",time:serverTimestamp()});
-  await updateDoc(userRef,{balance:0});
-  if(referrer){
-    const bonus=+(amount*0.10).toFixed(2);
-    await addDoc(collection(db,"referrals"),{referrer,invitee:username,withdrawAmount:amount,bonus,claimed:false,time:serverTimestamp()});
+/* ================= WITHDRAWAL REQUEST (SAFE TRANSACTION) ================= */
+withdrawBtn.addEventListener("click", async () => {
+  try {
+    await runTransaction(db, async (tx) => {
+      const userSnap = await tx.get(userRef);
+      const amount = userSnap.data().balance;
+      if (!amount || amount <= 0) throw "No balance to withdraw";
+
+      // Create withdrawal
+      await addDoc(collection(db,"withdrawals"),{
+        username,
+        amount,
+        status:"PENDING",
+        time:serverTimestamp()
+      });
+
+      // Reset balance
+      tx.update(userRef,{balance:0});
+
+      // Referral bonus
+      const referrer = userSnap.data().referrer;
+      if(referrer){
+        const bonus = +(amount*0.10).toFixed(2);
+        await addDoc(collection(db,"referrals"),{
+          referrer,
+          invitee: username,
+          withdrawAmount: amount,
+          bonus,
+          claimed:false,
+          time:serverTimestamp()
+        });
+      }
+    });
+    alert("Withdrawal requested successfully!");
+  } catch(e){
+    console.error("Withdraw failed:",e);
+    alert("Withdrawal failed: "+e);
   }
-  updateLeaderboard();
 });
 
-/* ================= OWNER DASHBOARD ================= */
-ownerBtn.addEventListener("click",()=>{if(prompt("Owner password")==="Propetas6") ownerDiv.classList.remove("hidden");});
-window.approve=async(id)=>{await updateDoc(doc(db,"withdrawals",id),{status:"PAID"});};
-window.deny=async(id)=>{const wRef=doc(db,"withdrawals",id); const wSnap=await getDoc(wRef); if(!wSnap.exists()) return; await runTransaction(db,async tx=>{tx.update(doc(db,"users",wSnap.data().username),{balance:wSnap.data().amount}); tx.update(wRef,{status:"DENIED"});});};
+/* ================= OWNER APPROVE / DENY SAFE ================= */
+window.approve = async (withdrawId) => {
+  try {
+    const wRef = doc(db, "withdrawals", withdrawId);
+    await runTransaction(db, async (tx) => {
+      const wSnap = await tx.get(wRef);
+      if (!wSnap.exists()) throw "Withdrawal does not exist";
+      if (wSnap.data().status !== "PENDING") throw "Already processed";
+
+      tx.update(wRef, { status: "PAID" });
+    });
+    alert("Withdrawal approved ✅");
+  } catch (e) { console.error(e); alert("Failed: "+e); }
+};
+
+window.deny = async (withdrawId) => {
+  try {
+    const wRef = doc(db, "withdrawals", withdrawId);
+    await runTransaction(db, async (tx) => {
+      const wSnap = await tx.get(wRef);
+      if (!wSnap.exists()) throw "Withdrawal does not exist";
+      if (wSnap.data().status !== "PENDING") throw "Already processed";
+
+      const usernameDenied = wSnap.data().username;
+      const amount = wSnap.data().amount;
+
+      const uRef = doc(db, "users", usernameDenied);
+      const uSnap = await tx.get(uRef);
+      if (!uSnap.exists()) throw "User does not exist";
+
+      const newBalance = (uSnap.data().balance || 0) + amount;
+
+      tx.update(uRef, { balance: newBalance });
+      tx.update(wRef, { status: "DENIED" });
+    });
+    alert("Withdrawal denied and balance refunded ✅");
+  } catch(e){ console.error(e); alert("Failed: "+e);}
+};
 
 /* ================= INIT ================= */
 if(username) showApp();
