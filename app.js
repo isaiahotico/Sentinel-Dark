@@ -13,7 +13,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* ELEMENTS */
+/* ===== ELEMENTS ===== */
 const loginCard=document.getElementById("loginCard");
 const loginBtn=document.getElementById("loginBtn");
 const loginUsername=document.getElementById("loginUsername");
@@ -47,7 +47,7 @@ const ownerDiv=document.getElementById("owner");
 let username=localStorage.getItem("activeUser");
 let userRef=null;
 
-/* ======== USERNAME LIVE CHECK ======= */
+/* ===== USERNAME LIVE CHECK ===== */
 loginUsername.addEventListener("input",async()=>{
   const val=loginUsername.value.trim().toLowerCase();
   if(!val){ usernameStatus.innerText=""; return;}
@@ -56,7 +56,7 @@ loginUsername.addEventListener("input",async()=>{
   usernameStatus.className = snap.exists() ? "available" : "taken";
 });
 
-/* ================= LOGIN / REGISTER ================= */
+/* ===== LOGIN / REGISTER ===== */
 loginBtn.addEventListener("click", async()=>{
   const input=loginUsername.value.trim().toLowerCase();
   if(!input) return alert("Enter username");
@@ -89,7 +89,7 @@ loginBtn.addEventListener("click", async()=>{
   showApp();
 });
 
-/* ================= SHOW APP ================= */
+/* ===== SHOW APP ===== */
 function showApp(){
   loginCard.classList.add("hidden");
   appCard.classList.remove("hidden");
@@ -103,13 +103,13 @@ function showApp(){
   updateLeaderboard();
 }
 
-/* ================= LOGOUT ================= */
+/* ===== LOGOUT ===== */
 logoutBtn.addEventListener("click",()=>{localStorage.removeItem("activeUser"); location.reload();});
 
-/* ================= BALANCE ================= */
+/* ===== BALANCE ===== */
 function listenBalance(){onSnapshot(userRef,snap=>{if(snap.exists()) balanceEl.innerText=snap.data().balance.toFixed(2);});}
 
-/* ================= WITHDRAWALS ================= */
+/* ===== WITHDRAWALS ===== */
 function listenWithdrawals(){
   onSnapshot(collection(db,"withdrawals"),snap=>{
     withdrawTable.innerHTML="";
@@ -125,7 +125,7 @@ function listenWithdrawals(){
   });
 }
 
-/* ================= REFERRALS ================= */
+/* ===== REFERRALS ===== */
 toggleReferralBtn.addEventListener("click",()=>referralBox.classList.toggle("hidden"));
 function listenReferrals(){
   onSnapshot(collection(db,"referrals"),snap=>{
@@ -159,7 +159,7 @@ claimReferralBtn.addEventListener("click", async()=>{
   updateLeaderboard();
 });
 
-/* ================= LEADERBOARD ================= */
+/* ===== LEADERBOARD ===== */
 async function updateLeaderboard(){
   const snap=await getDocs(collection(db,"referrals"));
   const leaderboard={};
@@ -173,64 +173,69 @@ async function updateLeaderboard(){
   sorted.forEach(([user,bonus])=>leaderboardTable.innerHTML+=`<tr><td>${user}</td><td>₱${bonus.toFixed(2)}</td></tr>`);
 }
 
-/* ================= AD REWARD ================= */
+/* ===== AD REWARD ===== */
 async function reward(amount){await runTransaction(db,async tx=>{const snap=await tx.get(userRef); tx.update(userRef,{balance:snap.data().balance+amount});});}
 dailyBtn.addEventListener("click",()=>show_10276123().then(()=>reward(0.02).then(()=>alert("🎉 0.02 earned"))));
 adsBtn.addEventListener("click",()=>show_10276123("pop").then(()=>reward(0.04).then(()=>alert("🎉 0.04 earned"))));
 
-/* ================= WITHDRAWAL REQUEST (SAFE TRANSACTION) ================= */
+/* ===== SAFE WITHDRAWAL REQUEST ===== */
 withdrawBtn.addEventListener("click", async () => {
+  const gcash = gcashInput.value.trim();
+  if(!gcash) return alert("Enter your GCash number");
+
   try {
     await runTransaction(db, async (tx) => {
       const userSnap = await tx.get(userRef);
-      const amount = userSnap.data().balance;
-      if (!amount || amount <= 0) throw "No balance to withdraw";
+      const amount = userSnap.data().balance || 0;
+      if (amount <= 0) throw "No balance to withdraw";
 
-      // Create withdrawal
-      await addDoc(collection(db,"withdrawals"),{
+      // Create withdrawal record
+      await addDoc(collection(db, "withdrawals"), {
         username,
         amount,
-        status:"PENDING",
-        time:serverTimestamp()
+        gcash,
+        status: "PENDING",
+        time: serverTimestamp()
       });
 
-      // Reset balance
-      tx.update(userRef,{balance:0});
+      // Decrease user balance
+      tx.update(userRef, { balance: 0 });
 
       // Referral bonus
       const referrer = userSnap.data().referrer;
       if(referrer){
-        const bonus = +(amount*0.10).toFixed(2);
+        const bonus = +(amount * 0.10).toFixed(2);
         await addDoc(collection(db,"referrals"),{
           referrer,
           invitee: username,
           withdrawAmount: amount,
           bonus,
-          claimed:false,
-          time:serverTimestamp()
+          claimed: false,
+          time: serverTimestamp()
         });
       }
     });
+
     alert("Withdrawal requested successfully!");
-  } catch(e){
-    console.error("Withdraw failed:",e);
-    alert("Withdrawal failed: "+e);
+  } catch (e) {
+    console.error("Withdrawal failed:", e);
+    alert("Withdrawal failed: " + e);
   }
 });
 
-/* ================= OWNER APPROVE / DENY SAFE ================= */
+/* ===== SAFE OWNER APPROVE / DENY ===== */
 window.approve = async (withdrawId) => {
   try {
     const wRef = doc(db, "withdrawals", withdrawId);
     await runTransaction(db, async (tx) => {
       const wSnap = await tx.get(wRef);
-      if (!wSnap.exists()) throw "Withdrawal does not exist";
+      if (!wSnap.exists()) throw "Withdrawal not found";
       if (wSnap.data().status !== "PENDING") throw "Already processed";
 
       tx.update(wRef, { status: "PAID" });
     });
     alert("Withdrawal approved ✅");
-  } catch (e) { console.error(e); alert("Failed: "+e); }
+  } catch(e) { console.error(e); alert("Failed: "+e);}
 };
 
 window.deny = async (withdrawId) => {
@@ -238,7 +243,7 @@ window.deny = async (withdrawId) => {
     const wRef = doc(db, "withdrawals", withdrawId);
     await runTransaction(db, async (tx) => {
       const wSnap = await tx.get(wRef);
-      if (!wSnap.exists()) throw "Withdrawal does not exist";
+      if (!wSnap.exists()) throw "Withdrawal not found";
       if (wSnap.data().status !== "PENDING") throw "Already processed";
 
       const usernameDenied = wSnap.data().username;
@@ -249,13 +254,12 @@ window.deny = async (withdrawId) => {
       if (!uSnap.exists()) throw "User does not exist";
 
       const newBalance = (uSnap.data().balance || 0) + amount;
-
       tx.update(uRef, { balance: newBalance });
       tx.update(wRef, { status: "DENIED" });
     });
-    alert("Withdrawal denied and balance refunded ✅");
+    alert("Withdrawal denied & balance refunded ✅");
   } catch(e){ console.error(e); alert("Failed: "+e);}
 };
 
-/* ================= INIT ================= */
+/* ===== INIT ===== */
 if(username) showApp();
