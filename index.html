@@ -8,80 +8,57 @@
 <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
 
 <style>
-body {
-  margin:0;
-  font-family:Arial;
-  background:#f8fafc; /* light mode background */
-  color:#000;          /* light text */
-}
-.container {
-  max-width:440px;
-  margin:auto;
-  padding:16px;
-}
-.card {
-  background:#fff;
-  color:#000;
-  padding:14px;
-  border-radius:12px;
-  margin-bottom:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-button {
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:none;
-  margin-top:8px;
-  font-weight:bold;
-}
-.blue{background:#38bdf8;color:#000}
-.green{background:#22c55e;color:#000}
-.red{background:#f87171;color:#000}
-.input{width:100%;padding:10px;border-radius:10px;border:1px solid #ccc}
-table{width:100%;font-size:12px;border-collapse:collapse}
-td,th{padding:6px;border-bottom:1px solid #cbd5e1;text-align:left}
-.hidden{display:none}
-.badge{padding:2px 6px;border-radius:6px;font-size:10px}
-.pending{background:#facc15;color:#000}
-.paid{background:#22c55e;color:#000}
+body {margin:0;font-family:Arial;background:#f8fafc;color:#000;}
+.container{max-width:440px;margin:auto;padding:16px;}
+.card{background:#fff;color:#000;padding:14px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+button{width:100%;padding:10px;border-radius:10px;border:none;margin-top:8px;font-weight:bold;}
+.blue{background:#38bdf8;color:#000;}
+.green{background:#22c55e;color:#000;}
+.red{background:#f87171;color:#000;}
+.input{width:100%;padding:10px;border-radius:10px;border:1px solid #ccc;}
+table{width:100%;font-size:12px;border-collapse:collapse;}
+td,th{padding:6px;border-bottom:1px solid #cbd5e1;text-align:left;}
+.hidden{display:none;}
+.badge{padding:2px 6px;border-radius:6px;font-size:10px;}
+.pending{background:#facc15;color:#000;}
+.paid{background:#22c55e;color:#000;}
+.available{color:green;font-size:12px;}
+.taken{color:red;font-size:12px;}
 </style>
 </head>
 
 <body>
 <div class="container">
 
-<!-- REGISTER / LOGIN -->
+<!-- LOGIN -->
 <div id="loginCard" class="card">
   <h3>🔐 Register / Login Username</h3>
   <input id="loginUsername" class="input" placeholder="Enter username">
-  <button class="green" onclick="login()">Continue</button>
+  <p id="usernameStatus"></p>
+  <button class="green" id="loginBtn">Continue</button>
 </div>
 
 <!-- APP -->
 <div id="appCard" class="card hidden">
-
 <h3>👤 <span id="username"></span></h3>
-<button class="red" onclick="logout()">Logout</button>
+<button class="red" id="logoutBtn">Logout</button>
 
 <div class="card">
 <h2>Balance: ₱<span id="balance">0.00</span></h2>
-<button class="blue" onclick="dailySignin()">Daily Sign In ₱0.02</button>
-<button class="blue" onclick="showAds()">Ads ₱0.04</button>
+<button class="blue" id="dailyBtn">Daily Sign In ₱0.02</button>
+<button class="blue" id="adsBtn">Ads ₱0.04</button>
 </div>
 
 <div class="card">
 <h3>Withdraw (GCash)</h3>
 <input id="gcash" class="input" placeholder="GCash Number">
-<button class="green" onclick="withdraw()">Withdraw</button>
+<button class="green" id="withdrawBtn">Withdraw</button>
 </div>
 
 <div class="card">
 <h3>Withdrawal History</h3>
 <table>
-<thead>
-<tr><th>Date</th><th>User</th><th>Amount</th><th>Status</th></tr>
-</thead>
+<thead><tr><th>Date</th><th>User</th><th>Amount</th><th>Status</th></tr></thead>
 <tbody id="withdrawTable"></tbody>
 </table>
 </div>
@@ -89,38 +66,30 @@ td,th{padding:6px;border-bottom:1px solid #cbd5e1;text-align:left}
 <div class="card">
 <h3>🎁 Referral</h3>
 <p style="font-size:12px">Your referral code: <b id="refCode"></b></p>
-<button class="blue" onclick="toggleReferral()">View Referral Records</button>
-
+<button class="blue" id="toggleReferralBtn">View Referral Records</button>
 <div id="referralBox" class="hidden">
 <p>Total Referrals: <b id="refCount">0</b></p>
 <table>
-<thead>
-<tr><th>User</th><th>Withdraw</th><th>Bonus</th><th>Status</th></tr>
-</thead>
+<thead><tr><th>User</th><th>Withdraw</th><th>Bonus</th><th>Status</th></tr></thead>
 <tbody id="refTable"></tbody>
 </table>
-<button class="green" onclick="claimReferral()">Claim Bonus</button>
+<button class="green" id="claimReferralBtn">Claim Bonus</button>
 </div>
 </div>
 
 <div class="card">
 <h3>🏆 Referral Leaderboard</h3>
 <table>
-<thead>
-<tr><th>User</th><th>Bonus Earned</th></tr>
-</thead>
+<thead><tr><th>User</th><th>Bonus Earned</th></tr></thead>
 <tbody id="leaderboardTable"></tbody>
 </table>
 </div>
 
-<button class="red" onclick="ownerLogin()">Owner Dashboard</button>
-
+<button class="red" id="ownerBtn">Owner Dashboard</button>
 <div id="owner" class="card hidden">
 <h3>Owner – Full Withdrawal History</h3>
 <table>
-<thead>
-<tr><th>Date</th><th>User</th><th>Amount</th><th>Status</th><th>Action</th></tr>
-</thead>
+<thead><tr><th>Date</th><th>User</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
 <tbody id="ownerTable"></tbody>
 </table>
 <p style="font-size:12px">Records are permanent for accountability</p>
