@@ -47,20 +47,6 @@ const ownerDiv=document.getElementById("owner");
 let username=localStorage.getItem("activeUser");
 let userRef=null;
 
-/* ===== USERNAME LIVE CHECK ===== */
-loginUsername.addEventListener("input", async () => {
-  const val = loginUsername.value.trim().toLowerCase();
-  if (!val) { usernameStatus.innerText=""; usernameStatus.className=""; return; }
-  const snap = await getDoc(doc(db,"users",val));
-  if (snap.exists()) {
-    usernameStatus.innerText = "Username already exists — will login";
-    usernameStatus.className = "available";
-  } else {
-    usernameStatus.innerText = "Username available — will register";
-    usernameStatus.className = "taken";
-  }
-});
-
 /* ===== LOGIN / REGISTER ===== */
 loginBtn.addEventListener("click", async () => {
   const input = loginUsername.value.trim().toLowerCase();
@@ -118,22 +104,21 @@ function listenBalance(){
   });
 }
 
-/* ===== WITHDRAWALS (USER + OWNER LIVE) ===== */
+/* ===== WITHDRAWALS ===== */
 function listenWithdrawals(){
   onSnapshot(collection(db,"withdrawals"), snap=>{
-    withdrawTable.innerHTML = "";
-    ownerTable.innerHTML = "";
+    withdrawTable.innerHTML="";
+    ownerTable.innerHTML="";
 
     snap.forEach(d=>{
-      const w = d.data();
-      const date = w.time?.toDate?.().toLocaleString?.() || "-";
-      const badge = (w.status === "PAID")
-        ? `<span class="badge paid">PAID</span>`
-        : `<span class="badge pending">PENDING</span>`;
+      const w=d.data();
+      const date=w.time?.toDate?.()?.toLocaleString?.() || "-";
+      const badge = w.status === "PAID" ? `<span class="badge paid">PAID</span>` :
+                    w.status === "DENIED" ? `<span class="badge denied">DENIED</span>` :
+                    `<span class="badge pending">PENDING</span>`;
 
-      // user row
-      if (w.username === username) {
-        withdrawTable.innerHTML += `
+      if(w.username===username){
+        withdrawTable.innerHTML+=`
           <tr>
             <td>${date}</td>
             <td>${w.username}</td>
@@ -143,76 +128,21 @@ function listenWithdrawals(){
           </tr>`;
       }
 
-      // owner row (all)
-      const actionButtons = (w.status === "PENDING")
-        ? `<div class="owner-actions"><button class="small-btn" onclick="approve('${d.id}')">Approve</button><button class="small-btn" onclick="deny('${d.id}')">Deny</button></div>`
-        : "";
-      ownerTable.innerHTML += `
+      const actionButtons=w.status==="PENDING" ? `<div class="owner-actions">
+        <button class="small-btn" onclick="approve('${d.id}')">Approve</button>
+        <button class="small-btn" onclick="deny('${d.id}')">Deny</button>
+      </div>` : "";
+
+      ownerTable.innerHTML+=`
         <tr>
-         <td>${date}</td>
-         <td>${w.username}</td>
-         <td>${w.gcash || "-"}</td>
-         <td>₱${Number(w.amount).toFixed(2)}</td>
-         <td>${badge}</td>
-         <td>${actionButtons}</td>
+          <td>${date}</td>
+          <td>${w.username}</td>
+          <td>${w.gcash || "-"}</td>
+          <td>₱${Number(w.amount).toFixed(2)}</td>
+          <td>${badge}</td>
+          <td>${actionButtons}</td>
         </tr>`;
     });
-  });
-}
-
-/* ===== REFERRALS ===== */
-toggleReferralBtn.addEventListener("click", ()=> referralBox.classList.toggle("hidden"));
-
-function listenReferrals(){
-  onSnapshot(collection(db,"referrals"), snap=>{
-    refTable.innerHTML = "";
-    let total = 0;
-    snap.forEach(d=>{
-      const r = d.data();
-      if (r.referrer === username) {
-        total++;
-        const status = r.claimed ? `<span class="badge paid">CLAIMED</span>` : `<span class="badge pending">UNCLAIMED</span>`;
-        refTable.innerHTML += `<tr><td>${r.invitee}</td><td>₱${Number(r.withdrawAmount).toFixed(2)}</td><td>₱${Number(r.bonus).toFixed(2)}</td><td>${status}</td></tr>`;
-      }
-    });
-    refCountEl.innerText = total;
-  });
-}
-
-claimReferralBtn.addEventListener("click", async ()=>{
-  const snap = await getDocs(collection(db,"referrals"));
-  let totalBonus = 0;
-  const docs = [];
-  snap.forEach(d=>{
-    const r = d.data();
-    if (r.referrer === username && !r.claimed) {
-      totalBonus += r.bonus;
-      docs.push(d.ref);
-    }
-  });
-  if (totalBonus <= 0) return alert("No bonus to claim");
-  await runTransaction(db, async tx=>{
-    const uSnap = await tx.get(userRef);
-    tx.update(userRef, { balance: (uSnap.data().balance || 0) + totalBonus });
-    docs.forEach(ref => tx.update(ref, { claimed: true }));
-  });
-  alert(`🎉 Referral bonus ₱${totalBonus.toFixed(2)} claimed`);
-  updateLeaderboard();
-});
-
-/* ===== LEADERBOARD ===== */
-async function updateLeaderboard(){
-  const snap = await getDocs(collection(db,"referrals"));
-  const leaderboard = {};
-  snap.forEach(d=>{
-    const r = d.data();
-    if (!r.claimed) return;
-    leaderboard[r.referrer] = (leaderboard[r.referrer] || 0) + r.bonus;
-  });
-  const sorted = Object.entries(leaderboard).sort((a,b) => b[1] - a[1]);
-  leaderboardTable.innerHTML = "";
-  sorted.forEach(([user, bonus]) => {
-    leaderboardTable.innerHTML += `<tr><td>${user}</td><td>₱${Number(bonus).toFixed(2)}</td></tr>`;
   });
 }
 
@@ -226,95 +156,138 @@ async function reward(amount){
 dailyBtn.addEventListener("click", ()=> show_10276123().then(()=> reward(0.02).then(()=> alert("🎉 0.02 earned"))));
 adsBtn.addEventListener("click", ()=> show_10276123("pop").then(()=> reward(0.04).then(()=> alert("🎉 0.04 earned"))));
 
-/* ===== SAFE WITHDRAWAL REQUEST (atomic) ===== */
+/* ===== SAFE WITHDRAWAL REQUEST ===== */
 withdrawBtn.addEventListener("click", async ()=>{
   const gcash = gcashInput.value.trim();
   if (!gcash) return alert("Enter your GCash number");
 
   try {
-    await runTransaction(db, async tx => {
+    await runTransaction(db, async tx=>{
       const uSnap = await tx.get(userRef);
       const amount = uSnap.data().balance || 0;
       if (amount <= 0) throw "No balance to withdraw";
 
-      // create withdrawal record (separate write)
       await addDoc(collection(db,"withdrawals"), {
         username,
         amount,
         gcash,
-        status: "PENDING",
+        status:"PENDING",
         time: serverTimestamp()
       });
 
-      // set user balance to zero (atomic)
-      tx.update(userRef, { balance: 0 });
+      tx.update(userRef,{ balance: 0 });
 
-      // create referral record if applicable
       const referrer = uSnap.data().referrer;
-      if (referrer) {
-        const bonus = +(amount * 0.10).toFixed(2);
+      if(referrer){
+        const bonus = +(amount*0.10).toFixed(2);
         await addDoc(collection(db,"referrals"), {
           referrer,
           invitee: username,
           withdrawAmount: amount,
           bonus,
-          claimed: false,
-          time: serverTimestamp()
+          claimed:false,
+          time:serverTimestamp()
         });
       }
     });
     alert("Withdrawal requested successfully!");
-  } catch(e) {
-    console.error("Withdrawal failed:", e);
-    alert("Withdrawal failed: " + e);
+  } catch(e){
+    console.error(e);
+    alert("Withdrawal failed: "+e);
   }
 });
 
-/* ===== OWNER DASHBOARD ACCESS (PASSWORD) ===== */
+/* ===== OWNER DASHBOARD ===== */
 ownerBtn.addEventListener("click", ()=>{
   const pass = prompt("Enter owner password:");
-  if (pass === "Propetas6") {
-    ownerDiv.classList.toggle("hidden");
-  } else {
-    alert("Wrong password");
-  }
+  if(pass==="Propetas6"){ ownerDiv.classList.toggle("hidden"); }
+  else alert("Wrong password");
 });
 
-/* ===== OWNER ACTIONS: approve / deny (global) ===== */
+/* ===== OWNER ACTIONS ===== */
 window.approve = async (withdrawId) => {
-  try {
+  try{
     const wRef = doc(db,"withdrawals",withdrawId);
     await runTransaction(db, async tx=>{
       const wSnap = await tx.get(wRef);
-      if (!wSnap.exists()) throw "Withdrawal not found";
-      if (wSnap.data().status !== "PENDING") throw "Already processed";
-      tx.update(wRef, { status: "PAID" });
+      if(!wSnap.exists()) throw "Not found";
+      if(wSnap.data().status!=="PENDING") throw "Already processed";
+      tx.update(wRef,{ status:"PAID" });
     });
     alert("Withdrawal approved ✅");
-  } catch(e) { console.error(e); alert("Failed: "+e); }
+  }catch(e){ console.error(e); alert("Approve failed: "+e); }
 };
 
 window.deny = async (withdrawId) => {
-  try {
+  try{
     const wRef = doc(db,"withdrawals",withdrawId);
     await runTransaction(db, async tx=>{
       const wSnap = await tx.get(wRef);
-      if (!wSnap.exists()) throw "Withdrawal not found";
-      if (wSnap.data().status !== "PENDING") throw "Already processed";
+      if(!wSnap.exists()) throw "Not found";
+      if(wSnap.data().status!=="PENDING") throw "Already processed";
 
-      const usernameDenied = wSnap.data().username;
-      const amount = wSnap.data().amount || 0;
-      const uRef = doc(db,"users",usernameDenied);
+      const uname = wSnap.data().username;
+      const amt = wSnap.data().amount || 0;
+      const uRef = doc(db,"users",uname);
       const uSnap = await tx.get(uRef);
-      if (!uSnap.exists()) throw "User not found";
+      if(!uSnap.exists()) throw "User not found";
 
-      const newBalance = (uSnap.data().balance || 0) + amount;
-      tx.update(uRef, { balance: newBalance });
-      tx.update(wRef, { status: "DENIED" });
+      tx.update(uRef, { balance: (uSnap.data().balance||0) + amt });
+      tx.update(wRef, { status:"DENIED" });
     });
     alert("Withdrawal denied & refunded ✅");
-  } catch(e) { console.error(e); alert("Failed: "+e); }
+  }catch(e){ console.error(e); alert("Deny failed: "+e); }
 };
 
+/* ===== REFERRALS ===== */
+toggleReferralBtn.addEventListener("click", ()=> referralBox.classList.toggle("hidden"));
+
+function listenReferrals(){
+  onSnapshot(collection(db,"referrals"), snap=>{
+    refTable.innerHTML = "";
+    let total=0;
+    snap.forEach(d=>{
+      const r=d.data();
+      if(r.referrer===username){
+        total++;
+        const status = r.claimed ? `<span class="badge paid">CLAIMED</span>`:`<span class="badge pending">UNCLAIMED</span>`;
+        refTable.innerHTML+=`<tr><td>${r.invitee}</td><td>₱${Number(r.withdrawAmount).toFixed(2)}</td><td>₱${Number(r.bonus).toFixed(2)}</td><td>${status}</td></tr>`;
+      }
+    });
+    refCountEl.innerText = total;
+  });
+}
+
+claimReferralBtn.addEventListener("click", async ()=>{
+  const snap = await getDocs(collection(db,"referrals"));
+  let totalBonus = 0; const docs=[];
+  snap.forEach(d=>{
+    const r = d.data();
+    if(r.referrer===username && !r.claimed){ totalBonus += r.bonus; docs.push(d.ref); }
+  });
+  if(totalBonus<=0) return alert("No bonus to claim");
+  await runTransaction(db, async tx=>{
+    const uSnap = await tx.get(userRef);
+    tx.update(userRef, { balance: (uSnap.data().balance||0)+totalBonus });
+    docs.forEach(ref => tx.update(ref,{ claimed:true }));
+  });
+  alert(`🎉 Referral bonus ₱${totalBonus.toFixed(2)} claimed`);
+  updateLeaderboard();
+});
+
+/* ===== LEADERBOARD ===== */
+async function updateLeaderboard(){
+  const snap = await getDocs(collection(db,"referrals"));
+  const leaderboard={};
+  snap.forEach(d=>{
+    const r=d.data();
+    if(!r.claimed) return;
+    leaderboard[r.referrer]=(leaderboard[r.referrer]||0)+r.bonus;
+  });
+  const sorted = Object.entries(leaderboard).sort((a,b)=>b[1]-a[1]);
+  leaderboardTable.innerHTML="";
+  sorted.forEach(([user,bonus])=>leaderboardTable.innerHTML+=`<tr><td>${user}</td><td>₱${Number(bonus).toFixed(2)}</td></tr>`);
+}
+
 /* ===== INIT ===== */
-if (username) showApp();
+if(username) showApp();
