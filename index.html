@@ -1,101 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Telegram Mini Bank</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
 
 <style>
 body {margin:0;font-family:Arial;background:#f8fafc;color:#000;}
-.container{max-width:440px;margin:auto;padding:16px;}
-.card{background:#fff;color:#000;padding:14px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+.container{max-width:640px;margin:auto;padding:16px;}
+.card{background:#fff;color:#000;padding:14px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.08);}
 button{width:100%;padding:10px;border-radius:10px;border:none;margin-top:8px;font-weight:bold;cursor:pointer;}
+.small-btn{width:auto;padding:6px 10px;margin-left:6px;font-size:13px}
 .blue{background:#38bdf8;color:#000;}
 .green{background:#22c55e;color:#000;}
 .red{background:#f87171;color:#000;}
 .input{width:100%;padding:10px;border-radius:10px;border:1px solid #ccc;}
-table{width:100%;font-size:12px;border-collapse:collapse;}
-td,th{padding:6px;border-bottom:1px solid #cbd5e1;text-align:left;}
+table{width:100%;font-size:13px;border-collapse:collapse;}
+td,th{padding:8px;border-bottom:1px solid #e6eef6;text-align:left;}
 .hidden{display:none;}
-.badge{padding:2px 6px;border-radius:6px;font-size:10px;}
+.badge{padding:4px 8px;border-radius:8px;font-size:12px;}
 .pending{background:#facc15;color:#000;}
 .paid{background:#22c55e;color:#000;}
 .available{color:green;font-size:12px;}
 .taken{color:red;font-size:12px;}
+.owner-actions button{margin-right:6px}
+.owner-actions{display:flex;gap:6px}
 </style>
 </head>
-
 <body>
 <div class="container">
 
-<!-- LOGIN -->
-<div id="loginCard" class="card">
-  <h3>🔐 Register / Login Username</h3>
-  <input id="loginUsername" class="input" placeholder="Enter username">
-  <p id="usernameStatus"></p>
-  <button class="green" id="loginBtn">Continue</button>
-</div>
+  <!-- LOGIN -->
+  <div id="loginCard" class="card">
+    <h3>🔐 Register / Login Username</h3>
+    <input id="loginUsername" class="input" placeholder="Enter username" />
+    <p id="usernameStatus"></p>
+    <button class="green" id="loginBtn">Continue</button>
+  </div>
 
-<!-- APP -->
-<div id="appCard" class="card hidden">
-<h3>👤 <span id="username"></span></h3>
-<button class="red" id="logoutBtn">Logout</button>
+  <!-- APP -->
+  <div id="appCard" class="card hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>👤 <span id="username"></span></h3>
+      <button class="red" id="logoutBtn" style="width:auto">Logout</button>
+    </div>
 
-<div class="card">
-<h2>Balance: ₱<span id="balance">0.00</span></h2>
-<button class="blue" id="dailyBtn">Daily Sign In ₱0.02</button>
-<button class="blue" id="adsBtn">Ads ₱0.04</button>
-</div>
+    <div class="card">
+      <h2>Balance: ₱<span id="balance">0.00</span></h2>
+      <div style="display:flex;gap:8px">
+        <button class="blue" id="dailyBtn" style="flex:1">Daily Sign In ₱0.02</button>
+        <button class="blue" id="adsBtn" style="flex:1">Ads ₱0.04</button>
+      </div>
+    </div>
 
-<div class="card">
-<h3>Withdraw (GCash)</h3>
-<input id="gcash" class="input" placeholder="GCash Number">
-<button class="green" id="withdrawBtn">Withdraw</button>
-</div>
+    <div class="card">
+      <h3>Withdraw (GCash)</h3>
+      <input id="gcash" class="input" placeholder="GCash Number" />
+      <button class="green" id="withdrawBtn">Withdraw</button>
+    </div>
 
-<div class="card">
-<h3>Withdrawal History</h3>
-<table>
-<thead><tr><th>Date</th><th>User</th><th>Amount</th><th>Status</th></tr></thead>
-<tbody id="withdrawTable"></tbody>
-</table>
-</div>
+    <div class="card">
+      <h3>Withdrawal History</h3>
+      <table>
+        <thead><tr><th>Date</th><th>User</th><th>GCash</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody id="withdrawTable"></tbody>
+      </table>
+    </div>
 
-<div class="card">
-<h3>🎁 Referral</h3>
-<p style="font-size:12px">Your referral code: <b id="refCode"></b></p>
-<button class="blue" id="toggleReferralBtn">View Referral Records</button>
-<div id="referralBox" class="hidden">
-<p>Total Referrals: <b id="refCount">0</b></p>
-<table>
-<thead><tr><th>User</th><th>Withdraw</th><th>Bonus</th><th>Status</th></tr></thead>
-<tbody id="refTable"></tbody>
-</table>
-<button class="green" id="claimReferralBtn">Claim Bonus</button>
-</div>
-</div>
+    <div class="card">
+      <h3>🎁 Referral</h3>
+      <p style="font-size:12px">Your referral code: <b id="refCode"></b></p>
+      <button class="blue" id="toggleReferralBtn">View Referral Records</button>
+      <div id="referralBox" class="hidden" style="margin-top:10px">
+        <p>Total Referrals: <b id="refCount">0</b></p>
+        <table>
+          <thead><tr><th>User</th><th>Withdraw</th><th>Bonus</th><th>Status</th></tr></thead>
+          <tbody id="refTable"></tbody>
+        </table>
+        <button class="green" id="claimReferralBtn">Claim Bonus</button>
+      </div>
+    </div>
 
-<div class="card">
-<h3>🏆 Referral Leaderboard</h3>
-<table>
-<thead><tr><th>User</th><th>Bonus Earned</th></tr></thead>
-<tbody id="leaderboardTable"></tbody>
-</table>
-</div>
+    <div class="card">
+      <h3>🏆 Referral Leaderboard</h3>
+      <table>
+        <thead><tr><th>User</th><th>Bonus Earned</th></tr></thead>
+        <tbody id="leaderboardTable"></tbody>
+      </table>
+    </div>
 
-<button class="red" id="ownerBtn">Owner Dashboard</button>
-<div id="owner" class="card hidden">
-<h3>Owner – Full Withdrawal History</h3>
-<table>
-<thead><tr><th>Date</th><th>User</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
-<tbody id="ownerTable"></tbody>
-</table>
-<p style="font-size:12px">Records are permanent for accountability</p>
-</div>
+    <div style="margin-top:8px">
+      <button class="red" id="ownerBtn" style="width:100%">Owner Dashboard</button>
+    </div>
 
-</div>
+    <div id="owner" class="card hidden" style="margin-top:12px">
+      <h3>Owner – Full Withdrawal History</h3>
+      <table>
+        <thead><tr><th>Date</th><th>User</th><th>GCash</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="ownerTable"></tbody>
+      </table>
+      <p style="font-size:12px">Records are permanent for accountability</p>
+    </div>
+  </div>
+
 </div>
 
 <script type="module" src="app.js"></script>
