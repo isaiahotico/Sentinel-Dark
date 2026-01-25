@@ -1,343 +1,215 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection,
-  onSnapshot, serverTimestamp, runTransaction, getDocs
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// ===== Firebase Config =====
+// Import Firebase SDKs
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getDatabase, ref, set, get, update, push, onValue, query, orderByChild, limitToLast } 
+from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
-  authDomain: "paper-house-inc.firebaseapp.com",
-  projectId: "paper-house-inc"
+  apiKey: "AIzaSyBwpa8mA83JAv2A2Dj0rh5VHwodyv5N3dg",
+  authDomain: "freegcash-ads.firebaseapp.com",
+  databaseURL: "https://freegcash-ads-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "freegcash-ads",
+  storageBucket: "freegcash-ads.firebasestorage.app",
+  messagingSenderId: "608086825364",
+  appId: "1:608086825364:web:3a8e628d231b52c6171781"
 };
+
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = getDatabase(app);
 
-/* ===== ELEMENTS ===== */
-const loginCard = document.getElementById("loginCard");
-const loginBtn = document.getElementById("loginBtn");
-const loginUsername = document.getElementById("loginUsername");
+// User Session Logic
+let userId = localStorage.getItem('paperhouse_uid');
+if (!userId) {
+    userId = 'User_' + Math.floor(Math.random() * 1000000); // More unique ID
+    localStorage.setItem('paperhouse_uid', userId);
+}
+document.getElementById('display-id').innerText = userId;
 
-const appCard = document.getElementById("appCard");
-const logoutBtn = document.getElementById("logoutBtn");
-const balanceEl = document.getElementById("balance");
-const usernameEl = document.getElementById("username");
+// Data Refs
+const userRef = ref(db, 'users/' + userId);
 
-const dailyBtn = document.getElementById("dailyBtn");
-const adsBtn = document.getElementById("adsBtn");
-const withdrawBtn = document.getElementById("withdrawBtn");
-const gcashInput = document.getElementById("gcash");
-
-const withdrawTable = document.getElementById("withdrawTable");
-const ownerTable = document.getElementById("ownerTable");
-
-const refCodeEl = document.getElementById("refCode");
-const refCountEl = document.getElementById("refCount");
-const refTable = document.getElementById("refTable");
-const referralBox = document.getElementById("referralBox");
-const toggleReferralBtn = document.getElementById("toggleReferralBtn");
-const claimReferralBtn = document.getElementById("claimReferralBtn");
-
-const leaderboardTable = document.getElementById("leaderboardTable");
-
-const ownerBtn = document.getElementById("ownerBtn");
-const ownerDiv = document.getElementById("owner");
-
-/* ===== GLOBAL STATE ===== */
-let username = localStorage.getItem("activeUser") || null;
-let userRef = null;
-
-/* ===== LOGIN / REGISTER ===== */
-loginBtn.addEventListener("click", async () => {
-  const input = loginUsername.value.trim().toLowerCase();
-  if (!input) return alert("Enter username");
-
-  loginBtn.disabled = true;
-  try {
-    const userDoc = doc(db, "users", input);
-    const snap = await getDoc(userDoc);
-
-    if (snap.exists()) {
-      username = input;
-      userRef = userDoc;
-      localStorage.setItem("activeUser", username);
-      showApp();
-      return;
+// 1. Update Balance UI Real-time
+// Initialize user data if it doesn't exist
+get(userRef).then((snapshot) => {
+    if (!snapshot.exists()) {
+        set(userRef, { balance: 0, totalAds: 0, id: userId });
     }
-
-    const referralCode = (prompt("Referral code (optional)") || "").trim().toLowerCase();
-    if (referralCode === input) return alert("Cannot refer yourself");
-
-    username = input;
-    userRef = userDoc;
-    await setDoc(userRef, {
-      username,
-      balance: 0,
-      referralBonus: 0,
-      referrer: referralCode || null,
-      createdAt: serverTimestamp()
-    });
-
-    localStorage.setItem("activeUser", username);
-    showApp();
-
-  } catch (e) {
-    console.error(e);
-    alert("Error: " + e);
-  } finally {
-    loginBtn.disabled = false;
-  }
+});
+onValue(userRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        document.getElementById('user-balance').innerText = (data.balance || 0).toFixed(2);
+    }
 });
 
-/* ===== SHOW APP ===== */
-function showApp() {
-  if (!userRef) return alert("User not initialized");
-  loginCard.classList.add("hidden");
-  appCard.classList.remove("hidden");
-  usernameEl.innerText = username;
-  refCodeEl.innerText = username;
-
-  dailyBtn.onclick = () =>
-    show_10276123()
-      .then(() => reward(0.02))
-      .then(() => alert("🎉 0.02 earned"));
-
-  adsBtn.onclick = () =>
-    show_10276123("pop")
-      .then(() => reward(0.04))
-      .then(() => alert("🎉 0.04 earned"));
-
-  withdrawBtn.onclick = safeWithdraw;
-  toggleReferralBtn.onclick = () => referralBox.classList.toggle("hidden");
-  claimReferralBtn.onclick = claimReferralBonus;
-  logoutBtn.onclick = () => {
-    localStorage.removeItem("activeUser");
-    location.reload();
-  };
-
-  listenBalance();
-  listenWithdrawals();
-  listenReferrals();
-  updateLeaderboard();
-}
-
-/* ===== BALANCE ===== */
-function listenBalance() {
-  onSnapshot(userRef, snap => {
-    if (snap.exists()) balanceEl.innerText = Number(snap.data().balance || 0).toFixed(2);
-  });
-}
-
-async function reward(amount) {
-  await runTransaction(db, async tx => {
-    const snap = await tx.get(userRef);
-    tx.update(userRef, { balance: (snap.data().balance || 0) + amount });
-  });
-}
-
-/* ===== WITHDRAWALS ===== */
-async function safeWithdraw() {
-  const gcash = gcashInput.value.trim();
-  if (!gcash) return alert("Enter GCash number");
-
-  try {
-    await runTransaction(db, async tx => {
-      const uSnap = await tx.get(userRef);
-      const amount = uSnap.data().balance || 0;
-      if (amount <= 0) throw "No balance";
-
-      await addDoc(collection(db, "withdrawals"), {
-        username,
-        amount,
-        gcash,
-        status: "PENDING",
-        time: serverTimestamp()
-      });
-
-      tx.update(userRef, { balance: 0 });
-
-      const referrer = uSnap.data().referrer;
-      if (referrer) {
-        const bonus = +(amount * 0.1).toFixed(2);
-        await addDoc(collection(db, "referrals"), {
-          referrer,
-          invitee: username,
-          withdrawAmount: amount,
-          bonus,
-          claimed: false,
-          time: serverTimestamp()
+// 2. Watch Ad Function
+window.watchAd = function() {
+    // Show Rewarded Popup ad
+    show_10337795('pop').then(() => {
+        // Ad watched successfully, reward the user
+        get(userRef).then((snapshot) => {
+            let current = snapshot.val() || { balance: 0, totalAds: 0 };
+            update(userRef, {
+                balance: (current.balance || 0) + 0.01,
+                totalAds: (current.totalAds || 0) + 1
+            });
+            alert('Congratulations! ₱0.01 has been added to your balance.');
         });
-      }
+    }).catch(e => {
+        // User closed ad or an error occurred
+        console.error("Monetag ad error:", e);
+        alert('Ad could not be loaded or was closed. Please try again.');
     });
+};
 
-    alert("Withdrawal requested!");
+// 3. Chat Logic
+window.sendMessage = function() {
+    const input = document.getElementById('chat-input');
+    if (input.value.trim() === "") return;
+    const chatRef = ref(db, 'chat');
+    push(chatRef, {
+        user: userId,
+        text: input.value,
+        timestamp: Date.now()
+    });
+    input.value = "";
+};
 
-  } catch (e) {
-    console.error(e);
-    alert("Failed: " + e);
-  }
+// Listen for new chat messages
+onValue(query(ref(db, 'chat'), orderByChild('timestamp'), limitToLast(20)), (snapshot) => {
+    const chatBox = document.getElementById('chat-messages');
+    chatBox.innerHTML = "";
+    snapshot.forEach(child => {
+        const val = child.val();
+        chatBox.innerHTML += `<div class="msg"><span class="msg-user">${val.user}:</span> ${val.text}</div>`;
+    });
+    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to bottom
+});
+
+// 4. Leaderboard Logic
+window.loadLeaderboard = function() {
+    const leadRef = query(ref(db, 'users'), orderByChild('totalAds'), limitToLast(10));
+    onValue(leadRef, (snapshot) => {
+        const list = document.getElementById('leader-list');
+        list.innerHTML = "";
+        let leaders = [];
+        snapshot.forEach(child => { leaders.push(child.val()); });
+        leaders.sort((a, b) => (b.totalAds || 0) - (a.totalAds || 0)).forEach((u, index) => { // Ensure sorting is correct
+            list.innerHTML += `
+                <div class="leader-item">
+                    <span>#${index+1} ${u.id}</span>
+                    <span style="color:var(--primary)">${u.totalAds || 0} Ads Watched</span>
+                </div>`;
+        });
+    });
+};
+
+// 5. Withdrawal Logic
+window.requestWithdraw = function() {
+    const gcashNumInput = document.getElementById('gcash-num');
+    const num = gcashNumInput.value.trim();
+
+    if (!/^(09|\+639)\d{9}$/.test(num)) { // Basic GCash number validation
+        return alert('Please enter a valid Philippine mobile number (e.g., 09123456789).');
+    }
+    
+    get(userRef).then(snap => {
+        const bal = (snap.val() && snap.val().balance) || 0;
+        if (bal < 0.02) {
+            return alert('Minimum withdrawal is ₱0.02. You currently have ₱' + bal.toFixed(2));
+        }
+        
+        const reqRef = ref(db, 'withdrawals');
+        push(reqRef, { 
+            userId, 
+            amount: bal, 
+            gcash: num, 
+            status: 'pending', 
+            timestamp: Date.now() 
+        });
+        update(userRef, { balance: 0 }); // Reset balance after withdrawal request
+        alert('Withdrawal request for ₱' + bal.toFixed(2) + ' to ' + num + ' has been sent! Please wait for admin approval.');
+        gcashNumInput.value = ''; // Clear input
+    });
+};
+
+// 6. Admin Logic
+window.checkAdmin = function() {
+    const pass = document.getElementById('admin-pass').value;
+    if (pass === "Propetas12") {
+        document.getElementById('admin-login').style.display = 'none';
+        document.getElementById('admin-content').style.display = 'block';
+        loadAdminData();
+    } else {
+        alert('Access Denied: Incorrect Password');
+    }
+};
+
+function loadAdminData() {
+    onValue(query(ref(db, 'withdrawals'), orderByChild('timestamp')), (snapshot) => {
+        const list = document.getElementById('request-list');
+        list.innerHTML = "";
+        let pendingRequests = [];
+        snapshot.forEach(child => {
+            const val = child.val();
+            // You might want to filter only pending requests or add a "mark as paid" button
+            pendingRequests.push({ key: child.key, ...val });
+        });
+
+        // Display in reverse chronological order
+        pendingRequests.reverse().forEach(req => {
+            const date = new Date(req.timestamp).toLocaleString();
+            list.innerHTML += `
+                <div class="admin-request">
+                    <b>Request ID:</b> ${req.key}<br>
+                    <b>User:</b> ${req.userId}<br>
+                    <b>GCash:</b> ${req.gcash}<br>
+                    <b>Amount:</b> ₱${req.amount.toFixed(2)}<br>
+                    <b>Status:</b> ${req.status}<br>
+                    <b>Date:</b> ${date}
+                </div>`;
+        });
+        if (pendingRequests.length === 0) {
+            list.innerHTML = "<p>No withdrawal requests at the moment.</p>";
+        }
+    });
 }
 
-/* ===== OWNER DASHBOARD ===== */
-ownerBtn.addEventListener("click", async () => {
-  const pass = prompt("Enter owner password:");
-  if (!pass) return;
-  try {
-    const ownerSnap = await getDoc(doc(db, "owners", "admin"));
-    if (!ownerSnap.exists()) return alert("Owner not found");
-    if (ownerSnap.data().password !== pass) return alert("Wrong password");
-    ownerDiv.classList.toggle("hidden");
-    alert("Owner access granted ✅");
-  } catch (e) {
-    console.error(e);
-    alert("Error: " + e);
+// 7. Navigation Control
+window.showView = function(viewId, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+    
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+
+    // Load specific data when a view is activated
+    if(viewId === 'leaderboard') loadLeaderboard();
+};
+
+// 8. Fun Feature: Background Color Change
+window.changeBgColor = function() {
+    const colors = ['#0f0f0f', '#1a0f0f', '#0f1a0f', '#0f0f1a', '#1a1a00', '#0a1d2e', '#2e0a1d']; // More varied colors
+    const currentBg = document.body.style.backgroundColor;
+    let newColor;
+    do {
+        newColor = colors[Math.floor(Math.random() * colors.length)];
+    } while (newColor === currentBg); // Ensure a different color is picked
+    document.body.style.backgroundColor = newColor;
+};
+
+// Monetag In-App Interstitial (optional, runs automatically based on settings)
+// This will run when app.js loads. You might want to trigger it on specific actions or page loads if needed.
+show_10337795({
+  type: 'inApp',
+  inAppSettings: { 
+    frequency: 2, // show automatically 2 ads
+    capping: 0.1, // within 0.1 hours (6 minutes)
+    interval: 30, // with a 30-second interval between them
+    timeout: 5, // and a 5-second delay before the first one is shown.
+    everyPage: false // 0 means session will be saved when you navigate between pages
   }
 });
 
-window.approve = async withdrawId => {
-  try {
-    const wRef = doc(db, "withdrawals", withdrawId);
-    await runTransaction(db, async tx => {
-      const wSnap = await tx.get(wRef);
-      if (!wSnap.exists()) throw "Withdrawal not found";
-      if (wSnap.data().status !== "PENDING") throw "Already processed";
-      tx.update(wRef, { status: "PAID" });
-    });
-    alert("Withdrawal approved ✅");
-  } catch (e) {
-    console.error(e);
-    alert("Failed: " + e);
-  }
-};
-
-window.deny = async withdrawId => {
-  try {
-    const wRef = doc(db, "withdrawals", withdrawId);
-    await runTransaction(db, async tx => {
-      const wSnap = await tx.get(wRef);
-      if (!wSnap.exists()) throw "Withdrawal not found";
-      if (wSnap.data().status !== "PENDING") throw "Already processed";
-
-      const uname = wSnap.data().username;
-      const amt = wSnap.data().amount || 0;
-      const uRef = doc(db, "users", uname);
-      const uSnap = await tx.get(uRef);
-      if (!uSnap.exists()) throw "User not found";
-
-      tx.update(uRef, { balance: (uSnap.data().balance || 0) + amt });
-      tx.update(wRef, { status: "DENIED" });
-    });
-    alert("Withdrawal denied & refunded ✅");
-  } catch (e) {
-    console.error(e);
-    alert("Failed: " + e);
-  }
-};
-
-/* ===== REFERRALS ===== */
-function listenReferrals() {
-  onSnapshot(collection(db, "referrals"), snap => {
-    refTable.innerHTML = "";
-    let total = 0;
-    snap.forEach(d => {
-      const r = d.data();
-      if (r.referrer === username) {
-        total++;
-        const status = r.claimed
-          ? `<span class="badge paid">CLAIMED</span>`
-          : `<span class="badge pending">UNCLAIMED</span>`;
-        refTable.innerHTML += `<tr><td>${r.invitee}</td><td>₱${Number(
-          r.withdrawAmount
-        ).toFixed(2)}</td><td>₱${Number(r.bonus).toFixed(2)}</td><td>${status}</td></tr>`;
-      }
-    });
-    refCountEl.innerText = total;
-  });
-}
-
-async function claimReferralBonus() {
-  const snap = await getDocs(collection(db, "referrals"));
-  let totalBonus = 0;
-  const docs = [];
-  snap.forEach(d => {
-    const r = d.data();
-    if (r.referrer === username && !r.claimed) {
-      totalBonus += r.bonus;
-      docs.push(d.ref);
-    }
-  });
-  if (totalBonus <= 0) return alert("No bonus available");
-
-  await runTransaction(db, async tx => {
-    const uSnap = await tx.get(userRef);
-    tx.update(userRef, { balance: (uSnap.data().balance || 0) + totalBonus });
-    docs.forEach(ref => tx.update(ref, { claimed: true }));
-  });
-
-  alert(`🎉 Bonus ₱${totalBonus.toFixed(2)} claimed`);
-  updateLeaderboard();
-}
-
-/* ===== LEADERBOARD ===== */
-async function updateLeaderboard() {
-  const snap = await getDocs(collection(db, "referrals"));
-  const leaderboard = {};
-  snap.forEach(d => {
-    const r = d.data();
-    if (!r.claimed) return;
-    leaderboard[r.referrer] = (leaderboard[r.referrer] || 0) + r.bonus;
-  });
-
-  const sorted = Object.entries(leaderboard).sort((a, b) => b[1] - a[1]);
-  leaderboardTable.innerHTML = "";
-  sorted.forEach(([user, bonus]) => {
-    leaderboardTable.innerHTML += `<tr><td>${user}</td><td>₱${Number(bonus).toFixed(2)}</td></tr>`;
-  });
-}
-
-/* ===== LISTEN TO WITHDRAWALS ===== */
-function listenWithdrawals() {
-  onSnapshot(collection(db, "withdrawals"), snap => {
-    withdrawTable.innerHTML = "";
-    ownerTable.innerHTML = "";
-    snap.forEach(d => {
-      const w = d.data();
-      const statusClass =
-        w.status === "PENDING"
-          ? "pending"
-          : w.status === "PAID"
-          ? "paid"
-          : "denied";
-
-      withdrawTable.innerHTML += `<tr>
-        <td>${w.time?.toDate?.()?.toLocaleString() || ""}</td>
-        <td>${w.username}</td>
-        <td>${w.gcash || "-"}</td>
-        <td>₱${Number(w.amount || 0).toFixed(2)}</td>
-        <td><span class="badge ${statusClass}">${w.status}</span></td>
-      </tr>`;
-
-      ownerTable.innerHTML += `<tr>
-        <td>${w.time?.toDate?.()?.toLocaleString() || ""}</td>
-        <td>${w.username}</td>
-        <td>${w.gcash || "-"}</td>
-        <td>₱${Number(w.amount || 0).toFixed(2)}</td>
-        <td><span class="badge ${statusClass}">${w.status}</span></td>
-        <td class="owner-actions">
-          ${
-            w.status === "PENDING"
-              ? `<button onclick="approve('${d.id}')" class="green small-btn">✅ Approve</button>
-                 <button onclick="deny('${d.id}')" class="red small-btn">❌ Deny</button>`
-              : ""
-          }
-        </td>
-      </tr>`;
-    });
-  });
-}
-
-/* ===== INIT APP ===== */
-if (username) {
-  userRef = doc(db, "users", username);
-  showApp();
-}
