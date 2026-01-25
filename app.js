@@ -16,209 +16,210 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// User Context
+// Telegram Context
 const tg = window.Telegram.WebApp;
-const user = tg.initDataUnsafe?.user || { id: "GUEST", username: "anonymous" };
+const user = tg.initDataUnsafe?.user || { id: "Local_User", username: "Guest" };
 const username = user.username || `User_${user.id}`;
 const uid = user.id.toString();
 
 document.getElementById('tg-user').innerText = username;
 document.getElementById('my-code').innerText = username;
 
-const uRef = ref(db, 'users/' + uid);
+const userRef = ref(db, 'users/' + uid);
 
-// Init User
-onValue(uRef, snap => {
+// --- State Handlers ---
+onValue(userRef, snap => {
     const d = snap.val();
     if (!d) {
-        set(uRef, { username, balance: 0, totalAds: 0, referralCount: 0, claimableBonus: 0, referredBy: "", lastVip: 0, lastPrem: 0, lastChat: 0 });
+        set(userRef, { username, balance: 0, referralCount: 0, claimableBonus: 0, lastVip: 0, lastPrem: 0, lastChat: 0 });
         return;
     }
-    document.getElementById('bal').innerText = d.balance.toFixed(4);
-    document.getElementById('r-count').innerText = d.referralCount || 0;
-    document.getElementById('r-bonus').innerText = (d.claimableBonus || 0).toFixed(4);
+    document.getElementById('balance').innerText = d.balance.toFixed(4);
+    document.getElementById('ref-count').innerText = d.referralCount || 0;
+    document.getElementById('ref-bonus').innerText = (d.claimableBonus || 0).toFixed(4);
     
-    // Cooldown logic
-    updateCD('vip-btn', 'vip-wait', d.lastVip, 10);
-    updateCD('prem-btn', 'prem-wait', d.lastPrem, 5);
+    updateCooldowns(d);
 });
 
-function updateCD(bid, tid, last, mins) {
-    const diff = Math.max(0, Math.ceil((mins * 60 * 1000 - (Date.now() - (last || 0))) / 1000));
-    const btn = document.getElementById(bid);
-    btn.disabled = diff > 0;
-    document.getElementById(tid).innerText = diff > 0 ? `(${diff}s)` : "";
+function updateCooldowns(d) {
+    const now = Date.now();
+    const cd = (last, min, btn, txt) => {
+        const remaining = Math.max(0, Math.ceil((min * 60 * 1000 - (now - (last || 0))) / 1000));
+        document.getElementById(btn).disabled = remaining > 0;
+        document.getElementById(txt).innerText = remaining > 0 ? `${Math.floor(remaining/60)}m ${remaining%60}s` : "";
+    };
+    cd(d.lastVip, 10, 'btn-vip', 'cd-vip');
+    cd(d.lastPrem, 5, 'btn-prem', 'cd-prem');
 }
 
-// Presence & Online List
-const pRef = ref(db, 'presence/' + uid);
-onValue(ref(db, '.info/connected'), (s) => {
-    if (s.val()) { onDisconnect(pRef).remove(); set(pRef, { username, active: true }); }
+// Presence
+const presenceRef = ref(db, 'presence/' + uid);
+onValue(ref(db, '.info/connected'), s => {
+    if (s.val()) { onDisconnect(presenceRef).remove(); set(presenceRef, { username }); }
 });
-
 onValue(ref(db, 'presence'), s => {
     const list = document.getElementById('on-list');
-    const count = document.getElementById('on-count');
-    list.innerHTML = ""; let i = 0;
-    s.forEach(child => {
-        i++;
-        list.innerHTML += `<div class="user-chip"><div class="pulse-dot"></div>@${child.val().username}</div>`;
-    });
-    count.innerText = i;
+    list.innerHTML = "";
+    s.forEach(c => list.innerHTML += `<div class="u-dot">@${c.val().username}</div>`);
 });
 
-// Ad Handlers
-window.runAd = async function(type) {
-    let reward = type === 'vip' ? 0.0112 : 0.0162;
-    let field = type === 'vip' ? 'lastVip' : 'lastPrem';
-    
+// --- Ad Actions ---
+window.adAction = async (type) => {
     if (type === 'prem') { await show_10337795(); await show_10337795(); }
-    
-    show_10337795('pop').then(() => {
-        addReward(reward, field);
-    });
+    show_10337795('pop').then(() => grant(type));
 };
 
-function addReward(amt, f) {
-    get(uRef).then(s => {
+function grant(type) {
+    const reward = type === 'vip' ? 0.0112 : 0.0162;
+    const field = type === 'vip' ? 'lastVip' : 'lastPrem';
+    get(userRef).then(s => {
         const d = s.val();
-        const up = { balance: d.balance + amt, totalAds: (d.totalAds || 0) + 1 };
-        up[f] = Date.now();
-        update(uRef, up);
-        if (d.referredBy) {
-            get(ref(db, 'users')).then(all => {
-                all.forEach(u => {
-                    if (u.val().username === d.referredBy) {
-                        update(ref(db, 'users/'+u.key), { claimableBonus: (u.val().claimableBonus||0) + (amt*0.08) });
-                    }
-                });
-            });
-        }
-        showPop(amt);
+        const upd = { balance: d.balance + reward };
+        upd[field] = Date.now();
+        update(userRef, upd);
+        if (d.referredBy) creditReferrer(d.referredBy, reward * 0.08);
     });
 }
 
-// Chat System
-window.sendChatMsg = function() {
+function creditReferrer(refName, amt) {
+    get(ref(db, 'users')).then(all => {
+        all.forEach(u => {
+            if (u.val().username === refName) {
+                update(ref(db, 'users/' + u.key), { claimableBonus: (u.val().claimableBonus || 0) + amt });
+            }
+        });
+    });
+}
+
+// --- Chat ---
+window.sendChat = async () => {
     const msg = document.getElementById('chat-in').value;
     if (!msg) return;
-
-    get(uRef).then(async s => {
+    get(userRef).then(async s => {
         const d = s.val();
-        const now = Date.now();
-        if (now - (d.lastChat || 0) > 300000) { // 5 min
+        if (Date.now() - (d.lastChat || 0) > 300000) {
             await show_10337795(); await show_10337795();
             show_10337795('pop').then(() => {
-                addReward(0.0162, "lastChat");
-                finishChat(msg);
+                grant('chat'); // Rewarding same as premium
+                update(userRef, { lastChat: Date.now() });
+                push(ref(db, 'chat'), { uid, username, msg, timestamp: serverTimestamp() });
             });
         } else {
-            finishChat(msg);
+            push(ref(db, 'chat'), { uid, username, msg, timestamp: serverTimestamp() });
         }
+        document.getElementById('chat-in').value = "";
     });
 };
 
-function finishChat(txt) {
-    push(ref(db, 'chat'), { uid, username, txt, timestamp: serverTimestamp() });
-    document.getElementById('chat-in').value = "";
-}
-
-onValue(query(ref(db, 'chat'), limitToLast(20)), s => {
-    const box = document.getElementById('chat-messages'); box.innerHTML = "";
+onValue(query(ref(db, 'chat'), limitToLast(15)), s => {
+    const box = document.getElementById('chat-box'); box.innerHTML = "";
     s.forEach(c => {
         const m = c.val();
-        const side = m.uid === uid ? 'msg-self' : 'msg-other';
-        box.innerHTML += `<div class="msg-bubble ${side}"><span class="msg-user">@${m.username}</span>${m.txt}</div>`;
+        box.innerHTML += `<div class="msg ${m.uid === uid ? 'msg-self' : 'msg-other'}"><b>@${m.username}</b><br>${m.msg}</div>`;
     });
     box.scrollTop = box.scrollHeight;
 });
 
-// Bg Cycle
-const bgColors = ["#0b0b0b", "pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
-let bgIdx = 0;
-window.cycleBg = (e) => {
-    if (['BUTTON', 'INPUT', 'I', 'A'].includes(e.target.tagName)) return;
-    const body = document.body;
-    body.className = ""; body.style.backgroundColor = "";
-    const current = bgColors[bgIdx];
-    if (current === 'bricks') body.classList.add('brick-bg');
-    else body.style.backgroundColor = current;
-    bgIdx = (bgIdx + 1) % bgColors.length;
+// --- Background Cycle ---
+const colors = ["pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
+let cIdx = 0;
+window.handleBgCycle = (e) => {
+    if (['BUTTON', 'INPUT', 'I'].includes(e.target.tagName)) return;
+    document.body.className = ""; document.body.style.backgroundColor = "";
+    const c = colors[cIdx];
+    if (c === 'bricks') document.body.classList.add('brick-bg');
+    else document.body.style.backgroundColor = c;
+    cIdx = (cIdx + 1) % colors.length;
 };
 
-// Admin & Withdrawal
-window.requestPayout = () => {
-    const n = document.getElementById('gc-name').value;
-    const num = document.getElementById('gc-num').value;
-    if (!n || !num) return alert("Missing info");
-    get(uRef).then(s => {
-        if (s.val().balance < 0.02) return alert("Min ₱0.02");
-        push(ref(db, 'withdrawals'), { uid, username, name: n, gcash: num, amt: s.val().balance, status: 'pending', timestamp: serverTimestamp() });
-        update(uRef, { balance: 0 });
-        alert("Success!");
+// --- Withdraw ---
+window.submitWithdraw = () => {
+    const name = document.getElementById('w-name').value;
+    const gcash = document.getElementById('w-num').value;
+    get(userRef).then(s => {
+        if (s.val().balance < 0.02) return alert("Min 0.02");
+        push(ref(db, 'withdrawals'), {
+            uid, username, name, gcash, amount: s.val().balance,
+            status: 'pending', timestamp: serverTimestamp()
+        });
+        update(userRef, { balance: 0 });
     });
 };
 
 onValue(ref(db, 'withdrawals'), s => {
-    const hist = document.getElementById('pay-hist'); hist.innerHTML = "";
+    const list = document.getElementById('w-history'); list.innerHTML = "";
     s.forEach(c => {
         const w = c.val();
         if (w.uid === uid) {
-            hist.innerHTML += `<div class="glass-card" style="font-size:11px;">₱${w.amt.toFixed(4)} | ${w.status.toUpperCase()} | ${new Date(w.timestamp).toLocaleDateString()}</div>`;
+            list.innerHTML += `<div class="hist-item card">
+                ${new Date(w.timestamp).toLocaleString()}<br>
+                ₱${w.amount.toFixed(4)} | ${w.gcash}<br>
+                <span class="status status-${w.status}">${w.status}</span>
+            </div>`;
         }
     });
 });
 
-window.authAdmin = () => {
+// --- Admin ---
+window.loginAdmin = () => {
     if (document.getElementById('adm-pass').value === "Propetas12") {
-        document.getElementById('admin-auth').style.display = 'none';
-        document.getElementById('admin-content').style.display = 'block';
+        document.getElementById('admin-auth').style.display = "none";
+        document.getElementById('admin-panel').style.display = "block";
         loadAdmin();
     }
 };
 
 function loadAdmin() {
     onValue(ref(db, 'withdrawals'), s => {
-        const reqs = document.getElementById('adm-reqs');
-        const hist = document.getElementById('adm-hist');
-        const totalDisp = document.getElementById('adm-total');
-        reqs.innerHTML = ""; hist.innerHTML = ""; let sum = 0;
+        const pend = document.getElementById('adm-pending');
+        const hist = document.getElementById('adm-history');
+        const total = document.getElementById('adm-total');
+        pend.innerHTML = ""; hist.innerHTML = ""; let sum = 0;
         s.forEach(c => {
             const w = c.val();
+            const date = new Date(w.timestamp).toLocaleString();
+            const h = `<div class="hist-item card">
+                @${w.username} | ₱${w.amount.toFixed(2)} | ${w.gcash}<br>
+                <small>${w.name} - ${date}</small><br>`;
             if (w.status === 'pending') {
-                reqs.innerHTML += `<div class="glass-card">@${w.username} - ₱${w.amt.toFixed(2)}<br>${w.gcash}<br>
-                    <button onclick="admUpd('${c.key}','approve')">Approve</button> <button onclick="admUpd('${c.key}','denied')">Deny</button></div>`;
-            } else if (w.status === 'approve') {
-                sum += w.amt;
-                hist.innerHTML += `<div style="font-size:10px;">${w.username} - ₱${w.amt} - ${w.gcash}</div>`;
+                pend.innerHTML += h + `<button onclick="setStat('${c.key}','approve')">Approve</button>
+                                       <button onclick="setStat('${c.key}','denied')">Deny</button></div>`;
+            } else {
+                if(w.status === 'approve') sum += w.amount;
+                hist.innerHTML += h + `<span class="status status-${w.status}">${w.status}</span></div>`;
             }
         });
-        totalDisp.innerText = sum.toFixed(2);
+        total.innerText = sum.toFixed(2);
     });
 }
-window.admUpd = (k, s) => update(ref(db, `withdrawals/${k}`), { status: s });
+window.setStat = (k, s) => update(ref(db, `withdrawals/${k}`), { status: s });
 
-// Helpers
-window.tab = (id, el) => {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.nav-bar i').forEach(i => i.classList.remove('active'));
-    document.getElementById(id).classList.add('active'); el.classList.add('active');
+// --- Referrals ---
+window.applyRef = () => {
+    const code = document.getElementById('ref-code').value.trim();
+    if (code === username) return;
+    get(userRef).then(s => {
+        if (!s.val().referredBy) {
+            update(userRef, { referredBy: code });
+            // Simplified referral count increment
+            get(ref(db, 'users')).then(all => {
+                all.forEach(u => { if(u.val().username === code) update(ref(db, 'users/' + u.key), { referralCount: (u.val().referralCount || 0) + 1 }); });
+            });
+        }
+    });
 };
 
 window.claimBonus = () => {
-    get(uRef).then(s => {
+    get(userRef).then(s => {
         const b = s.val().claimableBonus || 0;
-        if (b <= 0) return alert("Nothing to claim");
-        update(uRef, { balance: s.val().balance + b, claimableBonus: 0 });
-        showPop(b);
+        if (b > 0) update(userRef, { balance: s.val().balance + b, claimableBonus: 0 });
     });
 };
 
-function showPop(a) {
-    const p = document.getElementById('reward-pop');
-    document.getElementById('pop-amt').innerText = `+₱${a.toFixed(4)}`;
-    p.classList.add('show');
-    setTimeout(() => p.classList.remove('show'), 2000);
-}
-
-setInterval(() => { document.getElementById('footer-time').innerText = new Date().toLocaleString(); }, 1000);
+// --- Utilities ---
+window.showTab = (id, el) => {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav i').forEach(i => i.classList.remove('active'));
+    document.getElementById(id).classList.add('active'); el.classList.add('active');
+};
+setInterval(() => document.getElementById('f-time').innerText = new Date().toLocaleString(), 1000);
