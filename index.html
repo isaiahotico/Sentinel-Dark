@@ -3,162 +3,154 @@ ChatGPT | Midjourney:
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PAPERHOUSE INC</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <!-- Monetag SDKs -->
-    <script src='//thubanoa.com/aufe/v1/metatag.js?6294726'></script>
-    <script src="https://alwingulla.com/88/p.js"></script>
+    <!-- Monetag Scripts -->
+    <script src='//niphaume.com/pfe/current/tag.min.js?z=3136495' data-cfasync='false' async></script>
+    <script src='//niphaume.com/pfe/current/tag.min.js?z=3152686' data-cfasync='false' async></script>
+    <script src='//niphaume.com/pfe/current/tag.min.js?z=3152703' data-cfasync='false' async></script>
 
     <style>
-        :root { --bg-color: #000; }
-        body { background-color: var(--bg-color); color: #fff; transition: background 0.6s ease; font-family: sans-serif; }
-        .gold-text { background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .gold-card { background: rgba(0, 0, 0, 0.6); border: 1px solid #BF953F; border-radius: 15px; box-shadow: 0 0 15px rgba(191, 149, 63, 0.3); }
-        .gold-btn { background: linear-gradient(135deg, #BF953F, #FCF6BA, #AA771C); color: #000; font-weight: 800; border-radius: 8px; transition: 0.2s; }
-        .gold-btn:active { transform: scale(0.95); }
-        .section { display: none; }
-        .active-section { display: block; }
-        .nav-btn { color: #888; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-        .nav-active { color: #FCF6BA; border-bottom: 2px solid #FCF6BA; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        th { color: #BF953F; border-bottom: 1px solid #444; padding: 5px; text-align: left; }
-        td { padding: 8px 5px; border-bottom: 1px solid #222; }
+        :root {
+            --gold: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            --dark: #0a0a0a;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            background-color: var(--dark);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .shimmer {
+            background: var(--gold);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 2s infinite linear;
+            font-weight: bold;
+        }
+
+        @keyframes shine {
+            from { filter: hue-rotate(0deg); }
+            to { filter: hue-rotate(360deg); }
+        }
+
+        .container { padding: 20px; text-align: center; }
+
+        .header {
+            background: var(--glass);
+            padding: 20px;
+            border-bottom: 2px solid #bf953f;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .balance-card {
+            background: var(--gold);
+            color: #000;
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            box-shadow: 0 10px 20px rgba(191, 149, 63, 0.3);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+
+        .btn-gold { background: var(--gold); color: black; box-shadow: 0 4px 15px rgba(191, 149, 63, 0.4); }
+        .btn-gold:disabled { opacity: 0.5; filter: grayscale(1); }
+
+        .section-title { color: #fcf6ba; margin: 20px 0 10px; font-size: 0.9rem; letter-spacing: 2px; }
+
+        .history-item {
+            background: var(--glass);
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 0.8rem;
+            border-left: 3px solid #bf953f;
+        }
+
+        #admin-panel { display: none; background: #1a1a1a; padding: 20px; min-height: 100vh; }
+        
+        .tab-bar {
+            position: fixed; bottom: 0; width: 100%;
+            background: #111; display: flex; justify-content: space-around;
+            padding: 10px 0; border-top: 1px solid #bf953f;
+        }
+        .tab-item { color: #888; font-size: 0.7rem; text-decoration: none; }
+        .tab-item.active { color: #fcf6ba; }
     </style>
 </head>
-<body onclick="handleBgChange(event)">
+<body>
 
-    <!-- Top Navigation Bar -->
-    <div class="sticky top-0 z-50 bg-black/80 backdrop-blur-md p-4 border-b border-yellow-900 flex justify-between items-center">
-        <div>
-            <h1 class="text-lg font-black gold-text italic">🎖PAPERHOUSE INC🎖</h1>
-            <p id="userBar" class="text-[10px] font-bold text-white uppercase tracking-tighter">👤 Loading...</p>
+    <div id="app">
+        <div class="header">
+            <h2 class="shimmer">🎖PAPERHOUSE INC🎖</h2>
+            <div id="user-display" style="font-size: 0.9rem; color: #fcf6ba;">Loading User...</div>
         </div>
-        <div class="text-right">
-            <p class="text-[9px] text-yellow-500 uppercase">Current Balance</p>
 
-            <p class="text-xl font-black">₱<span id="balance">0.000</span></p>
-        </div>
-    </div>
-
-    <!-- Horizontal Nav -->
-    <div class="flex overflow-x-auto gap-4 p-3 bg-black/40 no-scrollbar border-b border-white/10">
-        <button onclick="showSec('ads')" class="nav-btn nav-active whitespace-nowrap" id="nav-ads">Ads</button>
-        <button onclick="showSec('withdraw')" class="nav-btn whitespace-nowrap" id="nav-withdraw">Withdraw</button>
-        <button onclick="showSec('refer')" class="nav-btn whitespace-nowrap" id="nav-refer">Referral</button>
-        <button onclick="showSec('social')" class="nav-btn whitespace-nowrap" id="nav-social">Leaderboard/Chat</button>
-        <button onclick="showSec('help')" class="nav-btn whitespace-nowrap" id="nav-help">Help</button>
-        <button onclick="showSec('admin')" class="nav-btn whitespace-nowrap" id="nav-admin">Owner</button>
-    </div>
-
-    <div class="p-4 pb-20">
-        <!-- ADS SECTION -->
-        <div id="sec-ads" class="section active-section space-y-4">
-            <div class="gold-card p-4 grid grid-cols-1 gap-3">
-                <button onclick="handleAd('gift1')" id="btn-gift1" class="gold-btn py-4">🎖🎉GIFT1🎉🎖<br><span class="text-[10px]">Reward: ₱0.075 | 15m</span></button>
-                <button onclick="handleAd('gift2')" id="btn-gift2" class="gold-btn py-4">🎖🎉GIFT2🎉🎖<br><span class="text-[10px]">Reward: ₱0.075 | 15m</span></button>
-                <button onclick="handleAd('gift3')" id="btn-gift3" class="gold-btn py-4">🎖🎉GIFT3🎉🎖<br><span class="text-[10px]">Reward: ₱0.075 | 15m</span></button>
-                <button onclick="handleAd('premium')" id="btn-premium" class="bg-red-700 text-white font-black py-5 rounded-lg border-2 border-yellow-500 animate-pulse">🎖PREMIUM🎉ADS🎖<br><span class="text-[10px]">Reward: ₱0.022 | 5m</span></button>
+        <div class="container">
+            <div class="balance-card">
+                <small>CURRENT BALANCE</small>
+                <h1 id="user-balance">₱ 0.0000</h1>
             </div>
-        </div>
 
-        <!-- WITHDRAW SECTION -->
-        <div id="sec-withdraw" class="section space-y-4">
-            <div class="gold-card p-4">
-                <h3 class="gold-text font-bold mb-3 uppercase text-sm">Request GCash Payout</h3>
-                <input type="number" id="wd-amount" placeholder="Amount (Min 1.00)" class="w-full bg-black border border-yellow-900 p-3 rounded mb-2 outline-none text-sm">
-                <input type="text" id="wd-gcash" placeholder="GCash Number (09...)" class="w-full bg-black border border-yellow-900 p-3 rounded mb-4 outline-none text-sm">
-                <button onclick="submitWithdraw()" class="gold-btn w-full py-3">SUBMIT REQUEST</button>
-            </div>
+            <div class="section-title">🎖🎉ADS🤑SECTION🎉🎖</div>
             
-            <div class="gold-card p-3">
-                <h3 class="text-xs text-yellow-500 font-bold mb-2 uppercase">Your Withdrawal History</h3>
-                <div class="overflow-x-auto">
-                    <table>
-                        <thead>
-                            <tr><th>Date</th><th>Amount</th><th>Status</th></tr>
-                        </thead>
-                        <tbody id="user-history-list"></tbody>
-                    </table>
-                </div>
-            </div>
+            <button class="btn btn-gold" id="vip-btn" onclick="showVipAd()">
+                🎖🎉VIP ADS🎉🎖 <br> <small>Reward: ₱0.0102 (1m CD)</small>
+            </button>
+
+            <button class="btn btn-gold" id="premium-btn" onclick="showPremiumAd()">
+                🎖PREMIUM🎉ADS🎖 <br> <small>Reward: ₱0.0185 (2m CD)</small>
+            </button>
+
+            <div class="section-title">WITHDRAWAL (GCASH)</div>
+            <input type="text" id="gcash-num" placeholder="GCash Number" style="width:90%; padding:10px; border-radius:5px; margin-bottom:5px;">
+            <input type="number" id="wd-amount" placeholder="Min ₱1.00" style="width:90%; padding:10px; border-radius:5px;">
+            <button class="btn btn-gold" onclick="requestWithdrawal()">WITHDRAW NOW</button>
+
+            <div class="section-title">WITHDRAWAL HISTORY</div>
+            <div id="history-list"></div>
         </div>
 
-        <!-- REFERRAL SECTION -->
-        <div id="sec-refer" class="section space-y-4">
-            <div class="gold-card p-4">
-                <h2 class="gold-text font-bold">REFERRAL SYSTEM (8%)</h2>
-                <p class="text-[10px] text-gray-400 mb-4">Your Code: <span id="my-ref-code" class="text-white font-bold bg-yellow-900 px-2 py-1 rounded"></span></p>
-                <div class="flex gap-2">
-                    <input type="text" id="input-ref" placeholder="Enter Friend's Code" class="bg-black border borde
-
-r-yellow-900 p-2 rounded text-xs flex-1">
-                    <button onclick="applyReferral()" class="gold-btn px-4 text-xs">APPLY</button>
-                </div>
-                <div class="mt-4 p-3 bg-white/5 rounded border border-dashed border-yellow-600">
-                    <p class="text-xs">Claimable Bonus: <span class="text-green-500">₱<span id="claimable-amt">0.000</span></span></p>
-                    <button onclick="claimRef()" class="gold-btn w-full py-2 mt-2 text-[10px]">CLAIM TO BALANCE</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- SOCIAL/LEADERBOARD SECTION -->
-        <div id="sec-social" class="section space-y-4">
-            <div class="gold-card p-3 h-64 flex flex-col">
-                <h3 class="gold-text text-xs font-bold mb-2">GLOBAL CHAT</h3>
-                <div id="chat-msgs" class="flex-1 overflow-y-auto text-[11px] space-y-1 mb-2"></div>
-                <div class="flex gap-1">
-                    <input type="text" id="chat-input" class="flex-1 bg-black border border-yellow-900 p-2 text-xs rounded" placeholder="Type here...">
-                    <button onclick="sendMsg()" class="gold-btn px-3">SEND</button>
-                </div>
-            </div>
-            <div class="gold-card p-3">
-                <h3 class="text-yellow-500 text-xs font-bold mb-2">🏆 TOP EARNERS</h3>
-                <div id="leaderboard-list" class="text-[10px] space-y-1"></div>
-            </div>
-        </div>
-
-        <!-- HELP SECTION -->
-        <div id="sec-help" class="section space-y-4">
-            <div class="gold-card p-6 text-center space-y-3">
-                <h3 class="gold-text font-bold uppercase">Community & Help</h3>
-                <a href="https://t.me/paperhouseinc" class="block bg-blue-600 p-3 rounded font-bold text-xs">Telegram Group</a>
-                <a href="https://t.me/PAPERHOUSE_INC" class="block bg-blue-800 p-3 rounded font-bold text-xs">Telegram Channel</a>
-                <a href="https://facebook.com/groups/1193693469083843/" class="block bg-blue-900 p-3 rounded font-bold text-xs">Facebook Group</a>
-            </div>
-        </div>
-
-        <!-- ADMIN SECTION -->
-        <div id="sec-admin" class="section space-y-4">
-            <div id="admin-login" class="gold-card p-4">
-                <input type="password" id="admin-pass" placeholder="Enter Owner Password" class="w-full bg-black border border-yellow-900 p-3 rounded mb-3 outline-none">
-                <button onclick="checkAdmin()" class="gold-btn w-full py-3">ACCESS DASHBOARD</button>
-            </div>
-            <div id="admin-dash" class="hidden space-y-4">
-                <h2 class="text-yellow-500 font-bold">PENDING REQUESTS</h2>
-                <div id="admin-pending-list" class="space-y-2"></div>
-                <h2 class="text-green-500 font-bold mt-6">PROCESSED HISTORY</h2>
-                <div class="gold-card p-2 overflow-x-auto">
-                    <table class="text-[9px]">
-                        <thead><tr><th>User</th><th>GCash</th><th>Amt</th><th>Status</th></tr></thead>
-                        <tbody id="admin-history-list"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <div style="height: 100px;"></div> <!-- Spacer -->
     </div>
 
-    <!-- Native Ads Container -->
-    <div class="fixed bottom-0 left-0 w-full bg-black/90 p-1 border-t border-yellow-600">
-        <div id="native-ad-area" class="flex justify-center min-h-[50px]">
-            <p class="text-[8px] text-yellow-900">NATIVE AD LOADED</p>
-        </div>
+    <!-- Admin Panel -->
+    <div id="admin-panel">
+        <h2 class="shimmer">ADMIN DASHBOARD</h2>
+        <button class="btn btn-gold" onclick="closeAdmin()">BACK TO APP</button>
+        <div id="pending-withdrawals"></div>
     </div>
 
+    <div class="tab-bar">
+        <a href="#" class="tab-item active" onclick="showSection('app')"><i class="fa fa-home fa-2x"></i><br>Home</a>
+        <a href="#" class="tab-item" onclick="openAdminPrompt()"><i class="fa fa-user-shield fa-2x"></i><br>Admin</a>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
