@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, addDoc, onSnapshot, query, orderBy, limit, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
     authDomain: "paper-house-inc.firebaseapp.com",
@@ -14,163 +15,177 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Telegram Auth Integration
+// Telegram Setup
 const tg = window.Telegram.WebApp;
 tg.expand();
-const user = tg.initDataUnsafe?.user || { id: "dev_user", first_name: "Developer", username: "dev_pro" };
+const user = tg.initDataUnsafe?.user || { id: "dev_123", username: "Local_Tester", first_name: "Tester" };
 const userId = String(user.id);
-const userName = user.username || user.first_name;
+const tgName = user.username || user.first_name;
 
-// Global State
 let userBalance = 0;
-const REWARD_AMT = 0.01;
-const COOLDOWN_TIME = 60000; // 1 minute
+let cdActive = false;
 
-// Elements
-document.getElementById('tgUsername').innerText = `@${userName}`;
-document.getElementById('userInitial').innerText = userName.charAt(0).toUpperCase();
-
-// 1. Sync User Data & Real-time Balance
+// 1. Sync Profile and Balance
 const userRef = doc(db, "users", userId);
 onSnapshot(userRef, (snap) => {
     if (snap.exists()) {
-        userBalance = snap.data().balance;
-        document.getElementById('balance').innerText = userBalance.toFixed(2);
+        const data = snap.data();
+        userBalance = data.balance;
+        document.getElementById('balance').innerText = userBalance.toFixed(4);
+        document.getElementById('uName').innerText = `@${data.username}`;
+        document.getElementById('uAvatar').innerText = data.username.charAt(0).toUpperCase();
     } else {
-        setDoc(userRef, { 
-            username: userName, 
-            balance: 0, 
+        setDoc(userRef, {
+            username: tgName,
+            balance: 0,
+            todayEarned: 0,
             lastAd: 0,
-            totalWithdrawn: 0 
+            lastReset: new Date().toLocaleDateString()
         });
     }
-    document.getElementById('loading').style.display = 'none';
+    document.getElementById('loader').style.display = 'none';
 });
 
-// 2. Navigation
-window.switchTab = (id) => {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-};
-
-// 3. Ad Logic with 1-Min Cooldown
-window.handleAd = async (type) => {
+// 2. Monetag Ads Logic (15s Cooldown | ₱0.0102)
+window.triggerAd = async (type) => {
+    if (cdActive) return;
+    
     const snap = await getDoc(userRef);
-    const lastAd = snap.data().lastAd || 0;
     const now = Date.now();
-
-    if (now - lastAd < COOLDOWN_TIME) {
-        const remaining = Math.ceil((COOLDOWN_TIME - (now - lastAd)) / 1000);
-        alert(`Please wait ${remaining}s before next ad.`);
+    if (now - (snap.data().lastAd || 0) < 15000) {
+        alert("Cooldown active! Please wait.");
         return;
     }
 
-    const adPromise = (type === 'pop') ? show_10276123('pop') : show_10276123();
+    const adTask = (type === 'pop') ? show_10276123('pop') : show_10276123();
 
-    adPromise.then(async () => {
+    adTask.then(async () => {
+        cdActive = true;
+        startCooldown();
+        
+        const today = new Date().toLocaleDateString();
+        const needsReset = snap.data().lastReset !== today;
+
         await updateDoc(userRef, {
-            balance: increment(REWARD_AMT),
-            lastAd: Date.now()
+            balance: increment(0.0102),
+            todayEarned: needsReset ? 0.0102 : increment(0.0102),
+            lastAd: Date.now(),
+            lastReset: today
         });
-        alert(`Success! ₱${REWARD_AMT} added.`);
-    }).catch(e => alert("Ad failed to load. Try again later."));
+    }).catch(() => alert("Ad failed to load."));
 };
 
-// 4. Global Chat (Live)
+function startCooldown() {
+    let timeLeft = 15;
+    const box = document.getElementById('cooldown');
+    const sec = document.getElementById('cdSec');
+    box.classList.remove('hidden');
+    const timer = setInterval(() => {
+        timeLeft--;
+        sec.innerText = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            box.classList.add('hidden');
+            cdActive = false;
+        }
+    }, 1000);
+}
+
+// 3. Global Chat
 window.sendChat = async () => {
-    const text = document.getElementById('chatInput').value;
-    if (!text) return;
-    await addDoc(collection(db, "chat"), {
-        uid: userId,
-        name: userName,
-        msg: text,
+    const inp = document.getElementById('chatInp');
+    if (!inp.value.trim()) return;
+    await addDoc(collection(db, "globalChat"), {
+        user: tgName,
+        msg: inp.value,
         time: serverTimestamp()
     });
-    document.getElementById('chatInput').value = "";
+    inp.value = "";
 };
 
-onSnapshot(query(collection(db, "chat"), orderBy("time", "desc"), limit(20)), (snap) => {
-    const chatBox = document.getElementById('chatBox');
-    chatBox.innerHTML = snap.docs.map(d => `
-        <div class="bg-white/5 p-2 rounded border-l-2 border-yellow-600">
-            <span class="gold-text text-[10px] font-bold">@${d.data().name}</span>
-            <p class="text-white text-xs">${d.data().msg}</p>
+onSnapshot(query(collection(db, "globalChat"), orderBy("time", "desc"), limit(20)), (snap) => {
+    const box = document.getElementById('chatBox');
+    box.innerHTML = snap.docs.map(d => `
+        <div class="p-2 glass rounded-lg border-l-2 border-yellow-600 self-start max-w-[80%]">
+            <p class="text-[9px] gold-text font-black">@${d.data().user}</p>
+            <p class="text-xs text-gray-200">${d.data().msg}</p>
         </div>
     `).reverse().join('');
-    chatBox.scrollTop = chatBox.scrollHeight;
+    box.scrollTop = box.scrollHeight;
 });
 
-// 5. Leaderboard (Updates every second via Firestore Snapshot)
-onSnapshot(query(collection(db, "users"), orderBy("balance", "desc"), limit(10)), (snap) => {
-    document.getElementById('leaderboardList').innerHTML = snap.docs.map((d, i) => `
-        <div class="glass flex justify-between p-4 rounded-xl border-l-4 ${i < 3 ? 'border-yellow-500' : 'border-gray-700'}">
-            <div class="flex items-center gap-3">
-                <span class="font-black text-xl italic">${i + 1}</span>
-                <span class="text-sm font-bold">@${d.data().username}</span>
-            </div>
-            <span class="gold-text font-black text-lg">₱${d.data().balance.toFixed(2)}</span>
+// 4. Leaderboard (Today's Top)
+onSnapshot(query(collection(db, "users"), orderBy("todayEarned", "desc"), limit(10)), (snap) => {
+    document.getElementById('leadList').innerHTML = snap.docs.map((d, i) => `
+        <div class="glass flex justify-between p-4 rounded-xl border-l-2 ${i < 3 ? 'border-yellow-500' : 'border-gray-800'}">
+            <span class="text-sm font-bold">#${i+1} @${d.data().username}</span>
+            <span class="gold-text font-black tracking-widest">₱${d.data().todayEarned.toFixed(4)}</span>
         </div>
     `).join('');
 });
 
-// 6. Withdrawal System
-window.requestWithdraw = async () => {
-    const num = document.getElementById('gcashNum').value;
-    const amt = parseFloat(document.getElementById('withAmount').value);
+// 5. Withdrawal and History
+window.submitWithdraw = async () => {
+    const num = document.getElementById('gcNum').value;
+    const amt = parseFloat(document.getElementById('gcAmt').value);
 
-    if (amt < 1) return alert("Minimum withdrawal is ₱1");
-    if (userBalance < amt) return alert("Insufficient Balance");
-    if (num.length < 10) return alert("Invalid GCash Number");
+    if (amt < 1) return alert("Min withdrawal ₱1.00");
+    if (userBalance < amt) return alert("Insufficient balance");
+    if (num.length < 10) return alert("Enter valid GCash number");
 
     await updateDoc(userRef, { balance: increment(-amt) });
-    await addDoc(collection(db, "withdrawals"), {
+    await addDoc(collection(db, "payouts"), {
         uid: userId,
-        username: userName,
-        number: num,
+        user: tgName,
+        gcash: num,
         amount: amt,
-        status: "pending",
+        status: "PENDING",
         time: serverTimestamp()
     });
-    alert("Withdrawal Requested! Pending approval.");
+    alert("Withdrawal submitted!");
 };
 
-// My History
-onSnapshot(query(collection(db, "withdrawals"), where("uid", "==", userId), orderBy("time", "desc")), (snap) => {
-    document.getElementById('myHistory').innerHTML = snap.docs.map(d => `
-        <div class="glass p-3 rounded-lg flex justify-between items-center text-xs">
-            <span>₱${d.data().amount} → ${d.data().number}</span>
-            <span class="${d.data().status === 'approved' ? 'text-green-500' : 'text-yellow-500'} font-bold uppercase">${d.data().status}</span>
+onSnapshot(query(collection(db, "payouts"), where("uid", "==", userId), orderBy("time", "desc")), (snap) => {
+    document.getElementById('withdrawHistory').innerHTML = snap.docs.map(d => `
+        <div class="glass p-3 rounded-lg flex justify-between items-center text-[10px]">
+            <span>₱${d.data().amount.toFixed(2)} → ${d.data().gcash}</span>
+            <span class="font-black ${d.data().status === 'PAID' ? 'text-green-500' : 'text-yellow-600'} italic">● ${d.data().status}</span>
         </div>
     `).join('');
 });
 
-// 7. Admin Dashboard (Propetas12)
-window.promptAdmin = () => {
-    const pass = prompt("Enter Admin Password:");
-    if (pass === "Propetas12") {
-        switchTab('admin');
-        loadAdminPanel();
-    } else {
-        alert("Unauthorized");
-    }
+// 6. Admin Panel (Password: Propetas12)
+window.authAdmin = () => {
+    const p = prompt("Enter Master Password:");
+    if (p === "Propetas12") {
+        showView('admin');
+        initAdmin();
+    } else alert("Denied");
 };
 
-function loadAdminPanel() {
-    onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), (snap) => {
+function initAdmin() {
+    onSnapshot(query(collection(db, "payouts"), where("status", "==", "PENDING")), (snap) => {
         document.getElementById('adminList').innerHTML = snap.docs.map(d => `
-            <div class="glass p-4 rounded-xl">
-                <p class="text-xs text-yellow-500 font-bold">@${d.data().username}</p>
-                <p class="text-xl font-black italic">₱${d.data().amount}</p>
-                <p class="text-gray-400 text-sm mb-4">Number: ${d.data().number}</p>
-                <button onclick="approvePayout('${d.id}')" class="bg-green-600 text-white px-6 py-2 rounded-full font-bold text-xs">APPROVE & PAYOUT</button>
+            <div class="glass p-4 rounded-xl border-2 border-yellow-600/30">
+                <div class="flex justify-between mb-2">
+                    <span class="text-xs gold-text font-black">@${d.data().user}</span>
+                    <span class="text-lg font-black italic">₱${d.data().amount.toFixed(2)}</span>
+                </div>
+                <p class="text-sm mb-4">Account: ${d.data().gcash}</p>
+                <button onclick="approvePayout('${d.id}')" class="w-full gold-bg py-2 rounded-lg text-xs">APPROVE & SYNC PAID</button>
             </div>
         `).join('');
     });
 }
 
 window.approvePayout = async (id) => {
-    if (confirm("Mark as Paid?")) {
-        await updateDoc(doc(db, "withdrawals", id), { status: "approved" });
-        alert("Marked as Approved!");
+    if (confirm("Confirm as Paid?")) {
+        await updateDoc(doc(db, "payouts", id), { status: "PAID" });
+        alert("Synced!");
     }
+};
+
+window.showView = (id) => {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
 };
