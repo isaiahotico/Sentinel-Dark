@@ -1,3 +1,4 @@
+UnlimAI (GPT | Claude | MidJourney):
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,230 +16,140 @@
             --gold: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
             --black: #0a0a0a;
         }
-        body {
-            background-color: var(--black);
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            padding-bottom: 80px;
-            transition: background 0.4s;
-            overflow-x: hidden;
-        }
-        .header {
-            background: var(--gold);
-            padding: 15px;
-            color: #000;
-            font-weight: 900;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .user-bar {
-            background: rgba(0,0,0,0.8);
-            padding: 8px 15px;
-            border-bottom: 1px solid #bf953f;
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: #fcf6ba;
-        }
-        .balance-card {
-            margin: 15px;
-            padding: 20px;
-            background: rgba(255,255,255,0.05);
-            border: 2px solid #bf953f;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: inset 0 0 15px rgba(191, 149, 63, 0.2);
-        }
-        .balance-amount {
-            font-size: 2.5rem;
-            color: #fcf6ba;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-        .ad-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            padding: 15px;
-        }
-        .btn {
-            background: var(--gold);
-            border: none;
-            padding: 12px 5px;
-            border-radius: 8px;
-            font-weight: bold;
-            color: #000;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #856a26;            text-transform: uppercase;
-            font-size: 0.75rem;
-        }
-        .btn:active { transform: translateY(3px); box-shadow: none; }
-        .full { grid-column: span 2; font-size: 0.9rem; padding: 15px; }
+        body { background-color: var(--black); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; transition: 0.4s; overflow-x: hidden; }
         
+        /* Registration Overlay */
+        #reg-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--black); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; display: none; }
+        
+        .header { background: var(--gold); padding: 15px; color: #000; font-weight: 900; text-align: center; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); position: sticky; top: 0; z-index: 100; }
+        .user-bar { background: rgba(0,0,0,0.8); padding: 8px 15px; border-bottom: 1px solid #bf953f; display: flex; justify-content: space-between; font-size: 0.8rem; color: #fcf6ba; }
+        
+        .balance-card { margin: 15px; padding: 20px; background: rgba(255,255,255,0.05); border: 2px solid #bf953f; border-radius: 15px; text-align: center; }
+        .balance-amount { font-size: 2.2rem; color: #fcf6ba; text-shadow: 0 0 10px gold; }
+        
+        .btn { background: var(--gold); border: none; padding: 12px; border-radius: 8px; font-weight: bold; color: #000; cursor: pointer; box-shadow: 0 4px 0 #856a26; text-transform: uppercase; font-size: 0.7rem; }
+        .btn:active { transform: translateY(3px); box-shadow: none; }
+        .full { width: 100%; display: block; margin-top: 10px; font-size: 0.9rem; }
+        
+        .ad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
         .section { display: none; padding: 15px; animation: fadeIn 0.4s; }
         .active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .nav-bar {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            background: #000;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            border-top: 2px solid #bf953f;
-            z-index: 1000;
-        }
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #000; display: flex; justify-content: space-around; padding: 10px 0; border-top: 2px solid #bf953f; z-index: 1000; }
         .nav-item { color: #bf953f; text-decoration: none; font-size: 0.65rem; text-align: center; }
 
-        input, textarea {
-            width: 90%;
-            padding: 12px;
-            margin: 10px 0;
-            background: #111;
-            border: 1px solid #bf953f;
-            color: #fff;
-            border-radius: 5px;
-        }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.75rem; }
-        th, td { border: 1px solid #bf953f; padding: 10px; text-align: center; }
+        input { width: 85%; padding: 12px; margin: 10px 0; background: #111; border: 1px solid #bf953f; color: #fff; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.7rem; }
+        th, td { border: 1px solid #bf953f; padding: 8px; text-align: center; }
         th { background: var(--gold); color: black; }
-        .status-Pending { color: orange; }
-        .status-Approved { color: lime; }
-        .status-Denied { color: red; }
-
-        #chat-box { height: 200px; overflow-y: auto; background: rgba(0,0,0,0.5); border: 1px solid #bf953f; padding: 10px; text-align: left; border-radius: 10px; }
-        .msg { margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #222; }
-        .msg b { color: gold; }
-
-        .native-container {
-            margin: 20px 0;
-            min-height: 50px;
-        }
+        
+        #chat-box { height: 150px; overflow-y: auto; background: rgba(0,0,0,0.5); border: 1px solid #bf953f; padding: 10px; border-radius: 10px; margin-bottom: 10px; }
     </style>
 </head>
 <body onclick="changeBg()">
 
+<!-- Registration Screen -->
+<div id="reg-overlay">
+    <div class="header" style="width: 80%; border-radius: 10px;">WELCOME TO PAPERHOUSE</div>
+    <p style="text-align: center; padding: 20px;">Please link your GCash account to continue.</p>
+    <input type="text" id="reg-name" placeholder="Full Name">
+    <input type="number" id="reg-gcash" placeholder="GCash Number (09...)">
+    <button class="btn" style="padding: 15px 40px;" onclick="registerUser()">START EARNING</button>
+</div>
+
 <div class="header">🎖PAPERHOUSE INC🎖</div>
 <div class="user-bar">
-    <span id="top-user">👤 Loading...</span>
-    <span id="online-count">🌐 Online: 1</span>
+    <span id="top-user">👤 Guest</span>
+    <span id="top-gcash">📱 GCash: --</span>
 </div>
 
 <!-- HOME -->
 <div id="home" class="section active">
     <div class="balance-card">
-        <div style="font-size: 0.8rem; letter-spacing: 2px;">WALLET BALANCE</div>
+        <div>MAIN BALANCE</div>
         <div class="balance-amount">₱<span id="user-balance">0.0000</span></div>
     </div>
-
-    <div class="ad-grid">        <button class="btn" onclick="rewardAd('LOGIN1', 3136495, 0.0075, 3600)">🤑LOGIN1🤑<br><small id="cd-LOGIN1">Ready</small></button>
+    <div class="ad-grid">
+        <button class="btn" onclick="rewardAd('LOGIN1', 3136495, 0.0075, 3600)">🤑LOGIN1🤑<br><small id="cd-LOGIN1">Ready</small></button>
         <button class="btn" onclick="rewardAd('LOGIN2', 3152686, 0.0075, 3600)">🤑LOGIN2🤑<br><small id="cd-LOGIN2">Ready</small></button>
         <button class="btn" onclick="rewardAd('LOGIN3', 3152703, 0.0075, 3600)">🤑LOGIN3🤑<br><small id="cd-LOGIN3">Ready</small></button>
         <button class="btn" onclick="rewardRewarded('GIFT1', '10276123', 0.075, 900)">🎖GIFT1🎖<br><small id="cd-GIFT1">15m</small></button>
         <button class="btn" onclick="rewardRewarded('GIFT2', '10337795', 0.075, 900)">🎖GIFT2🎖<br><small id="cd-GIFT2">15m</small></button>
         <button class="btn" onclick="rewardRewarded('GIFT3', '10337853', 0.075, 900)">🎖GIFT3🎖<br><small id="cd-GIFT3">15m</small></button>
         <button class="btn full" onclick="rewardCombined('VIP', 0.022, 300)">🎖VIP🎉ADS🎖<br><small id="cd-VIP">5 min</small></button>
-        <button class="btn full" onclick="rewardInterstitial('PREMIUM', 0.022, 300)">🎖PREMIUM🎉ADS🎖<br><small id="cd-PREMIUM">5 min</small></button>
+        <button class="btn full" onclick="rewardInterstitial('PREM', 0.022, 300)">🎖PREMIUM🎉ADS🎖<br><small id="cd-PREM">5 min</small></button>
     </div>
 </div>
 
 <!-- WITHDRAW -->
 <div id="withdraw" class="section">
-    <h3>GCASH WITHDRAWAL</h3>
-    <p style="font-size: 0.8rem; color: #aaa;">Minimum: ₱1.00</p>
-    <input type="number" id="wd-amount" placeholder="Amount (₱)">
-    <input type="text" id="wd-name" placeholder="GCash Registered Name">
-    <input type="number" id="wd-number" placeholder="GCash Number (09...)">
-    <button class="btn full" onclick="submitWithdraw()">SUBMIT REQUEST</button>
-
-    <h4>MY WITHDRAWAL HISTORY</h4>
-    <div style="overflow-x:auto;">
-        <table>
-            <thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
-            <tbody id="user-history"></tbody>
-        </table>
-    </div>
+    <h3>WITHDRAW PHP</h3>
+    <input type="number" id="wd-amt" placeholder="Amount (Min 1.00)">
+    <button class="btn full" onclick="submitWd()">SUBMIT GCASH REQUEST</button>
+    <h4>HISTORY</h4>
+    <table>
+        <thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody id="user-history"></tbody>
+    </table>
 </div>
 
-<!-- REFERRALS -->
+<!-- REFERRAL -->
 <div id="referral" class="section">
-    <h3>REFERRAL SYSTEM (8%)</h3>
+    <h3>REFERRALS (8%)</h3>
     <div class="balance-card">
-        <p>Your Code: <strong id="my-code" style="color: gold;">...</strong></p>
-        <p>Earnings: ₱<span id="ref-bonus-amt">0.00</span></p>
-        <button class="btn" onclick="claimRef()">CLAIM BONUS</button>
+        <p>Your Code: <strong id="my-code" style="color:gold">...</strong></p>
+        <p>Unclaimed: ₱<span id="ref-bonus">0.00</span></p>
+        <button class="btn" onclick="claimRef()">CLAIM TO BALANCE</button>
     </div>
-    <input type="text" id="ref-input" placeholder="Paste Username Code Here">
-    <button class="btn full" onclick="applyRef()">BIND REFERRER</button>
-    
-    <h4>MY REFERRALS (<span id="ref-count">0</span>)</h4>
-    <div id="ref-list" style="font-size: 0.8rem; background: #111; padding: 10px;"></div>
+    <in
+
+put type="text" id="ref-input" placeholder="Enter Referral Code">
+    <button class="btn full" onclick="bindRef()">BIND CODE</button>
+    <div id="ref-list" style="font-size: 0.8rem; margin-top: 10px;"></div>
 </div>
 
-<!-- CHAT & ONLINE -->
+<!-- CHAT -->
 <div id="chat" class="section">
-    <h3>CHAT ROOM</h3>
+    <h3>COMMUNITY</h3>
     <div id="chat-box"></div>
-    <div style="display:flex; gap: 5px;">
-        <input type="text" id="chat-msg" placeholder="Say something...">
-        <button class="btn" onclick="sendChat()">SEND</button>
-    </div>
-    <h4>ONLINE LIST</h4>
-    <div id="online-list" style="font-size: 0.7rem; color: #fcf6ba;"></div>
+    <input type="text" id="chat-msg" style="width:70%" placeholder="Type message...">
+    <button class="btn" onclick="sendChat()">SEND</button>
+    <div id="online-list" style="font-size: 0.7rem; margin-top: 10px; color: gold;"></div>
 </div>
 
 <!-- LEADERBOARD -->
 <div id="leaderboard" class="section">
     <h3>TOP EARNERS</h3>
     <table id="leader-table">
-        <thead><tr><th>Rank</th><th>User</th><th>Balance</th></tr></thead>
+        <thead><tr><th>Rank</th><th>User</th><th>Earned</th></tr></thead>
         <tbody id="leader-body"></tbody>
     </table>
-</div>
-
-<!-- HELP -->
-<div id="help" class="section">
-    <h3>HELP SECTION</h3>
-    <button class="btn full" onclick="tg.openLink('https://t.me/paperhouseinc')">Telegram Group</button><br><br>
-    <button class="btn full" onclick="tg.openLink('https://t.me/PAPERHOUSE_INC')">Telegram Channel</button><br><br>
-    <button class="btn full" onclick="tg.openLink('https://facebook.com/groups/1193693469083843/')">Facebook Group</button><br><br>
-    <button class="btn full" onclick="tg.openLink('https://www.facebook.com/profile.php?id=61586281245735')">Facebook Page</button>
 </div>
 
 <!-- ADMIN -->
 <div id="admin" class="section">
     <h3>OWNER DASHBOARD</h3>
     <div id="admin-login">
-        <input type="password" id="admin-pass" placeholder="Admin Password">
+        <input type="password" id="admin-pass" placeholder="Password">
         <button class="btn full" onclick="loginAdmin()">LOGIN</button>
     </div>
     <div id="admin-panel" style="display:none">
-        <h4>PENDING REQUESTS</h4>
-        <div style="overflow-x:auto;"><table id="admin-pending-table"></table></div>
-        <h4>PROCESSED HISTORY</h4>
-        <div style="overflow-x:auto;"><table id="admin-history-table"></table></div>
+        <h4>PENDING</h4>
+        <table id="admin-pending"></table>
+        <h4>APPROVED HISTORY</h4>
+        <table id="admin-approved"></table>
     </div>
 </div>
 
 <nav class="nav-bar">
     <a href="#" class="nav-item" onclick="nav('home')">🏠<br>EARN</a>
-    <a href="#" class="nav-item" onclick="nav('withdraw')">💰<br>GCASH</a>
+    <a href="#" class="nav-item" onclick="nav('withdraw')">💰<br>CASH</a>
     <a href="#" class="nav-item" onclick="nav('referral')">👥<br>REFS</a>
     <a href="#" class="nav-item" onclick="nav('chat')">💬<br>CHAT</a>
     <a href="#" class="nav-item" onclick="nav('leaderboard')">🏆<br>TOP</a>
-    <a href="#" class="nav-item" onclick="nav('help')">❓<br>HELP</a>
     <a href="#" class="nav-item" onclick="nav('admin')">🔑<br>ADMIN</a>
 </nav>
-
-<div class="native-container">
-    <script>(function(s){s.dataset.zone='10109465',s.src='https://groleegni.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
