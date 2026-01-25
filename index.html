@@ -1,203 +1,141 @@
-🎖🎉WELCOME USERS🎉🎖
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🎖🤑PAPERHOUSE INC ADS🤑🎖</title>
+    <!-- Telegram SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Monetag SDK -->
     <script src='//libtl.com/sdk.js' data-zone='10337795' data-sdk='show_10337795'></script>
-    <!-- Google Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        :root {
-            --primary: #ffd700;
-            --bg-color: #0f0f0f;
-            --card-bg: rgba(255, 255, 255, 0.1);
-            --text: #ffffff;
-        }
-
-        body {
-            margin: 0;
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text);
-            transition: background 0.5s ease;
-            overflow-x: hidden;
-        }
-
-        #app {
-            max-width: 500px;
-            margin: 0 auto;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Navigation */
-        .nav-tabs {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            max-width: 500px;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            justify-content: space-around;
-            padding: 15px 0;
-            border-top: 1px solid var(--primary);
-            z-index: 100;
-        }
-
-        .tab-btn {
-            color: #888;
-            font-size: 20px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .tab-btn.active {
-            color: var(--primary);
-            transform: scale(1.2);
-        }
-
-        /* Views */
-        .view { display: none; padding: 20px; padding-bottom: 100px; }
-        .view.active { display: block; animation: fadeIn 0.5s; }
-
-        @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
-
-        /* Dashboard Styles */
-        .header { text-align: center; padding: 20px 0; color: var(--primary); }
-        .balance-card {
-            background: linear-gradient(135deg, #1a1a1a, #333);
-            border: 2px solid var(--primary);
-            border-radius: 20px;
-            padding: 30px;
-            text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
-        }
-
-        .balance-amount { font-size: 3rem; font-weight: 800; margin: 10px 0; }
+        :root { --primary: #ffd700; --bg: #0f0f0f; --card: rgba(255,255,255,0.08); }
+        body { margin: 0; font-family: 'Poppins', sans-serif; background: var(--bg); color: white; transition: background 0.4s; overflow-x: hidden; }
+        #app { max-width: 500px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px; }
         
-        .btn-main {
-            background: var(--primary);
-            color: black;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 50px;
-            font-weight: 800;
-            width: 100%;
-            font-size: 1.1rem;
-            margin: 10px 0;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: background 0.3s ease;
-        }
-        .btn-main:hover {
-            background: #e6c000;
-        }
-        .btn-main:active {
-            transform: scale(0.98);
-        }
+        .view { display: none; padding: 20px; animation: fadeIn 0.3s; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from {opacity:0} to {opacity:1} }
 
-        /* Chat Styles */
-        #chat-messages { height: 300px; overflow-y: auto; background: var(--card-bg); border-radius: 10px; padding: 10px; margin-bottom: 10px; scroll-behavior: smooth; }
-        .msg { margin-bottom: 8px; font-size: 0.9rem; word-wrap: break-word; }
-        .msg-user { color: var(--primary); font-weight: bold; }
-        .chat-input-area { display: flex; gap: 5px; }
-        input[type="text"], input[type="password"] {
-            flex: 1; padding: 10px; border-radius: 5px; border: none; background: #222; color: white;
-            font-family: 'Poppins', sans-serif;
-        }
-        input[type="text"]::placeholder, input[type="password"]::placeholder {
-            color: #aaa;
-        }
+        /* Custom UI Components */
+        .card { background: var(--card); border-radius: 15px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        .gold { color: var(--primary); font-weight: 800; }
+        .btn { background: var(--primary); color: black; border: none; padding: 12px; border-radius: 10px; font-weight: 800; width: 100%; cursor: pointer; margin: 5px 0; text-transform: uppercase; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; width: auto; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: none; background: #222; color: white; box-sizing: border-box; }
 
-        /* Leaderboard */
-        .leader-item {
-            display: flex; justify-content: space-between; padding: 15px;
-            background: var(--card-bg); margin-bottom: 5px; border-radius: 10px;
-            align-items: center;
-        }
-        .leader-item span:first-child { font-weight: 600; }
+        /* Nav */
+        .nav { position: fixed; bottom: 0; width: 100%; max-width: 500px; background: #000; display: flex; justify-content: space-around; padding: 15px 0; border-top: 2px solid var(--primary); z-index: 1000; }
+        .nav i { font-size: 20px; color: #666; cursor: pointer; }
+        .nav i.active { color: var(--primary); }
 
-        /* Admin */
-        .admin-request { background: #222; padding: 10px; margin-top: 5px; border-left: 4px solid var(--primary); border-radius: 5px; }
+        /* Specific Lists */
+        #online-list, #history-list, #admin-requests { max-height: 300px; overflow-y: auto; font-size: 13px; }
+        .list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; }
+        .status-pending { color: orange; }
+
+        .status-approve { color: #00ff00; }
+        .status-denied { color: #ff4444; }
+        
+        .chat-box { height: 250px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin-bottom: 10px; }
     </style>
 </head>
-<body onclick="changeBgColor()">
+<body onclick="changeRandomBg()">
 
 <div id="app">
-    <!-- Home View -->
+    <!-- Home -->
     <div id="home" class="view active">
-        <div class="header">
-            <h1>🎖 PAPERHOUSE INC 🤑</h1>
+        <div style="text-align: center;">
+            <h2 class="gold">🎖 PAPERHOUSE INC 🎖</h2>
+            <p>Welcome, <span id="tg-username" class="gold">@User</span></p>
         </div>
-        <div class="balance-card">
-            <p>CURRENT BALANCE</p>
-            <div class="balance-amount">₱ <span id="user-balance">0.00</span></div>
-            <p>User ID: <span id="display-id">...</span></p>
+        
+        <div class="card" style="text-align: center;">
+            <p>TOTAL BALANCE</p>
+            <h1 style="font-size: 40px; margin: 0;">₱ <span id="balance">0.00</span></h1>
         </div>
-        <button class="btn-main" onclick="watchAd()">
-            <i class="fas fa-play-circle"></i> WATCH AD (₱0.01)
-        </button>
-        <button class="btn-main" style="background: #25d366;" onclick="showView('withdraw')">
-            <i class="fas fa-wallet"></i> WITHDRAW GCASH
-        </button>
-    </div>
 
-    <!-- Chat View -->
-    <div id="chat" class="view">
-        <h2 class="header">Global Chat Room</h2>
-        <div id="chat-messages"></div>
-        <div class="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Type a message...">
-            <button onclick="sendMessage()" class="btn-main" style="width: auto; margin: 0;">Send</button>
+        <button class="btn" onclick="watchAd()"><i class="fas fa-play"></i> WATCH AD (₱0.01)</button>
+        
+        <div class="card">
+            <h4 style="margin:0">Online Users (<span id="online-count">0</span>)</h4>
+            <div id="online-list"></div>
         </div>
     </div>
 
-    <!-- Leaderboard View -->
-    <div id="leaderboard" class="view">
-        <h2 class="header">Top Earners</h2>
-        <div id="leader-list"></div>
+    <!-- Referrals -->
+    <div id="refer" class="view">
+        <h2 class="gold">Referral System</h2>
+        <div class="card">
+            <p>Your Code: <span id="my-code" class="gold">...</span></p>
+            <p>Commission: <span class="gold">8% per ad watch</span></p>
+            <p>Referral Count: <span id="ref-count" class="gold">0</span></p>
+            <hr>
+            <p>Claimable Bonus: <span class="gold">₱<span id="ref-bonus">0.00</span></span></p>
+            <button class="btn" onclick="claimReferralBonus()">CLAIM REWARD</button>
+        </div>
+        <div class="card">
+            <p>Enter Referrer Code:</p>
+            <input type="text" id="refer-input" placeholder="Enter username (without @)">
+            <button class="btn btn-sm" onclick="applyReferral()">APPLY CODE</button>
+        </div>
     </div>
 
-    <!-- Withdraw View -->
+    <!-- Withdraw -->
     <div id="withdraw" class="view">
-        <h2 class="header">GCash Withdrawal</h2>
-        <p>Min: ₱0.02 | Max: All available balance</p>
-        <input type="text" id="gcash-num" placeholder="GCash Number (e.g., 09123456789)" style="width: 100%; margin-bottom: 10px;">
-        <button class="btn-main" onclick="requestWithdraw()">Confirm Withdrawal</button>
+        <h2 class="gold">Withdrawal</h2>
+        <div class="card">
+            <p>Minimum: ₱0.02</p>
+            <input type="text" id="gcash-name" placeholder="GCash Name">
+            <input type="text" id="gcash-num" placeholder="GCash Number">
+            <button class="btn" onclick="submitWithdraw()">WITHDRAW NOW</button>
+        </div>
+        <h3>Withdrawal History</h3>
+        <div id="history-list"></div>
     </div>
 
-    <!-- Admin View -->
+    <!-- Chat -->
+    <div id="chat" class="view">
+        <h2 class="gold">Live Chat</h2>
+        <div id="chat-messages" class="chat-box"></div>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="chat-msg" placeholder="Type message...">
+            <button class="btn btn-sm" onclick="sendChat()">Send</button>
+        </div>
+    </div>
+
+    <!-- Admin -->
     <div id="admin" class="view">
-        <h2 class="header">Owner Dashboard</h2>
-        <div id="admin-login">
-
-<input type="password" id="admin-pass" placeholder="Enter Admin Password">
-            <button class="btn-main" onclick="checkAdmin()">Login</button>
+        <h2 class="gold">Admin Dashboard</h2>
+        <div id="admin-auth">
+            <input type="password" id="admin-pass" placeholder="Password">
+            <button class="btn" onclick="loginAdmin()">Login</button>
         </div>
-        <div id="admin-content" style="display:none;">
-            <h3>Withdrawal Requests</h3>
-            <div id="request-list"></div>
+        <div id="admin-panel" style="display:none;">
+            <h3>Pending Requests</h3>
+            <div id="admin-requests"></div>
         </div>
     </div>
 
-    <!-- Nav Tabs -->
-    <div class="nav-tabs">
-        <div class="tab-btn active" onclick="showView('home', this)"><i class="fas fa-home"></i></div>
-        <div class="tab-btn" onclick="showView('chat', this)"><i class="fas fa-comments"></i></div>
-        <div class="tab-btn" onclick="showView('leaderboard', this)"><i class="fas fa-trophy"></i></div>
-        <div class="tab-btn" onclick="showView('admin', this)"><i class="fas fa-user-shield"></i></div>
+    <!-- Nav -->
+    <div class="nav">
+        <i class="fas fa-home active" onclick="showTab('home', this)"></i>
+        <i class="fas fa-users" onclick="showTab('refer', this)"></i>
+        <i class="fas fa-wallet" onclick="showTab('withdraw', this)"></i>
+        <i class="fas fa-comments" onclick="showTab('chat', this)"></i>
+        <i class="fas fa-user-shield" onclick="showTab('admin', this)"></i>
     </div>
 </div>
 
-<!-- Main application script -->
 <script type="module" src="app.js"></script>
-
+<script>
+    function changeRandomBg() {
+        const colors = ['#0f0f0f', '#1a0a2e', '#0a1a2e', '#0a2e1a', '#2e0a0a', '#1e1e1e'];
+        document.body.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    }
+</script>
 </body>
 </html>
