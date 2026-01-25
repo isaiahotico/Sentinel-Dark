@@ -4,151 +4,125 @@ ChatGPT | Midjourney:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAPERHOUSE INC</title>
+    <title>🎖PAPERHOUSE INC🎖</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <!-- Monetag Scripts -->
+    <!-- Monetag Tags -->
     <script src='//niphaume.com/pfe/current/tag.min.js?z=3136495' data-cfasync='false' async></script>
     <script src='//niphaume.com/pfe/current/tag.min.js?z=3152686' data-cfasync='false' async></script>
     <script src='//niphaume.com/pfe/current/tag.min.js?z=3152703' data-cfasync='false' async></script>
 
     <style>
-        :root {
-            --gold: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-            --dark: #0a0a0a;
-            --glass: rgba(255, 255, 255, 0.05);
+        .gold-gradient {
+            background: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
         }
-
-        body {
-            background-color: var(--dark);
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-        }
-
-        .shimmer {
-            background: var(--gold);
+        .gold-text {
+            background: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            animation: shine 2s infinite linear;
-            font-weight: bold;
         }
-
-        @keyframes shine {
-            from { filter: hue-rotate(0deg); }
-            to { filter: hue-rotate(360deg); }
+        .shimmer {
+            animation: shimmer 2.5s infinite linear;
+            background: linear-gradient(to right, #bf953f 0%, #fcf6ba 50%, #bf953f 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-
-        .container { padding: 20px; text-align: center; }
-
-        .header {
-            background: var(--glass);
-            padding: 20px;
-            border-bottom: 2px solid #bf953f;
-            border-radius: 0 0 20px 20px;
-        }
-
-        .balance-card {
-            background: var(--gold);
-            color: #000;
-            padding: 30px;
-            border-radius: 20px;
-            margin: 20px 0;
-            box-shadow: 0 10px 20px rgba(191, 149, 63, 0.3);
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: 0.3s;
-        }
-
-        .btn-gold { background: var(--gold); color: black; box-shadow: 0 4px 15px rgba(191, 149, 63, 0.4); }
-        .btn-gold:disabled { opacity: 0.5; filter: grayscale(1); }
-
-        .section-title { color: #fcf6ba; margin: 20px 0 10px; font-size: 0.9rem; letter-spacing: 2px; }
-
-        .history-item {
-            background: var(--glass);
-            margin: 5px 0;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: left;
-            font-size: 0.8rem;
-            border-left: 3px solid #bf953f;
-        }
-
-        #admin-panel { display: none; background: #1a1a1a; padding: 20px; min-height: 100vh; }
-        
-        .tab-bar {
-            position: fixed; bottom: 0; width: 100%;
-            background: #111; display: flex; justify-content: space-around;
-            padding: 10px 0; border-top: 1px solid #bf953f;
-        }
-        .tab-item { color: #888; font-size: 0.7rem; text-decoration: none; }
-        .tab-item.active { color: #fcf6ba; }
+        @keyframes shimmer { to { background-position: 200% center; } }
+        body { background-color: #050505; color: white; }
     </style>
 </head>
-<body>
+<body class="pb-24">
 
-    <div id="app">
-        <div class="header">
-            <h2 class="shimmer">🎖PAPERHOUSE INC🎖</h2>
-            <div id="user-display" style="font-size: 0.9rem; color: #fcf6ba;">Loading User...</div>
+    <!-- Header -->
+    <div class="p-6 border-b border-yellow-700/50 bg-black/40 sticky top-0 z-50 backdrop-blur-md">
+        <h1 class="text-2xl font-black text-center shimmer">🎖PAPERHOUSE INC🎖</h1>
+        <div class="flex justify-between items-center mt-4 px-2">
+            <span id="user-display" class="text-yellow-200 text-sm font-bold italic">@Loading...</span>
+            <span class="bg-yellow-600/20 text-yellow-500 text-[10px] px-2 py-1 rounded border border-yellow-600">VIP MEMBER</span>
         </div>
+    </div>
 
-        <div class="container">
-            <div class="balance-card">
-                <small>CURRENT BALANCE</small>
-                <h1 id="user-balance">₱ 0.0000</h1>
+    <div class="p-4 space-y-6">
+        <!-- Balance Card -->
+        <div class="gold-gradient p-[1px] rounded-2xl shadow-[0_0_20px_rgba(191,149,63,0.3)]">
+            <div class="bg-zinc-950 rounded-2xl p-6 text-center">
+                <p class="text-gray-400 text-xs tracking-widest uppercase mb-1">Main Balance</p>
+
+                <h2 id="user-balance" class="text-4xl font-black gold-text">₱ 0.0000</h2>
             </div>
-
-            <div class="section-title">🎖🎉ADS🤑SECTION🎉🎖</div>
-            
-            <button class="btn btn-gold" id="vip-btn" onclick="showVipAd()">
-                🎖🎉VIP ADS🎉🎖 <br> <small>Reward: ₱0.0102 (1m CD)</small>
-            </button>
-
-            <button class="btn btn-gold" id="premium-btn" onclick="showPremiumAd()">
-                🎖PREMIUM🎉ADS🎖 <br> <small>Reward: ₱0.0185 (2m CD)</small>
-            </button>
-
-            <div class="section-title">WITHDRAWAL (GCASH)</div>
-            <input type="text" id="gcash-num" placeholder="GCash Number" style="width:90%; padding:10px; border-radius:5px; margin-bottom:5px;">
-            <input type="number" id="wd-amount" placeholder="Min ₱1.00" style="width:90%; padding:10px; border-radius:5px;">
-            <button class="btn btn-gold" onclick="requestWithdrawal()">WITHDRAW NOW</button>
-
-            <div class="section-title">WITHDRAWAL HISTORY</div>
-            <div id="history-list"></div>
         </div>
 
-        <div style="height: 100px;"></div> <!-- Spacer -->
+        <!-- Referral Section -->
+        <div class="bg-zinc-900/50 border border-yellow-900/30 rounded-xl p-4">
+            <h3 class="gold-text font-bold mb-3 text-sm italic underline"><i class="fa fa-users mr-2"></i>REFERRAL SYSTEM (8% BONUS)</h3>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <div class="bg-black/40 p-3 rounded-lg border border-yellow-900/20">
+                    <p class="text-[10px] text-gray-400 uppercase">Invited</p>
+                    <p id="ref-count" class="text-xl font-bold text-white">0</p>
+                </div>
+                <div class="bg-black/40 p-3 rounded-lg border border-yellow-900/20">
+                    <p class="text-[10px] text-gray-400 uppercase">Pending Bonus</p>
+                    <p id="ref-bonus" class="text-xl font-bold text-green-400">₱0.00</p>
+                </div>
+            </div>
+            <button onclick="claimRefBonus()" class="w-full py-2 bg-green-600 text-white rounded-lg text-xs font-bold mb-3 hover:bg-green-500 transition">CLAIM BONUS TO BALANCE</button>
+            <div class="flex gap-2">
+                <input type="text" id="ref-input" placeholder="Enter Referrer Username" class="flex-1 bg-black border border-yellow-700/30 rounded px-3 py-2 text-xs focus:outline-none focus:border-yellow-500 text-yellow-100">
+                <button onclick="submitReferral()" class="bg-yellow-600 px-4 py-2 rounded text-black font-bold text-xs">SUBMIT</button>
+            </div>
+        </div>
+
+        <!-- Ads Section -->
+        <div class="space-y-3">
+            <p class="text-center text-[10px] font-bold text-yellow-700 tracking-[0.3em]">🎖🎉ADS🤑SECTION🎉🎖</p>
+            
+            <button id="vip-btn" onclick="showVipAd()" class="w-full gold-gradient p-4 rounded-xl text-black font-black flex justify-between items-center shadow-lg active:scale-95 transition">
+                <span>🎖🎉VIP ADS🎉🎖</span>
+                <span class="text-[10px] bg-black/20 px-2 py-1 rounded">₱0.0102</span>
+            </button>
+
+            <button id="premium-btn" onclick="showPremiumAd()" class="w-full bg-zinc-900 border-2 border-yellow-600 p-4 rounded-xl text-yellow-500 font-black flex justify-between items-center active:scale-95 transition">
+                <span>🎖PREMIUM🎉ADS🎖</span>
+                <span class="text-[10px] bg-yellow-600/20 px-2 py-1 rounded text-yellow-500">₱0.0185</span>
+            </button>
+        </div>
+
+        <!-- Withdrawal Section -->
+        <div class="bg-zinc-900/80 border border-yellow-600/30 rounded-2xl p-5 space-y-3">
+            <p class="text-xs font-bold text-gray-400">WITHDRAW TO GCASH</p>
+            <input type="text" id="gcash-num" placeholder="GCash Number (e.g. 0912...)" class="w-full bg-black border border-zinc-800 rounded-lg p-3 text-sm focus:border-yellow-600 outline-none">
+            <input type="number" id="wd-amount" placeholder="Minimum ₱1.00" class="w-full bg-black border border-zinc-800 rounded-lg p-3 text-sm focus:border-yellow-600 outline-none">
+            <button onclick="requestWithdrawal()" class="w-full gold-gradient py-3 rounded-lg text-black font-black uppercase tracking-widest shadow-lg">Request Withdrawal</button>
+        </div>
+
+        <!-- History -->
+        <div class="space-y-2">
+            <p class="text-[10px] font-bold text-gray-500 uppercase px-2">Recent Transactions</p>
+            <div id="history-list" class="space-y-2"></div>
+        </div>
     </div>
 
-    <!-- Admin Panel -->
-    <div id="admin-panel">
-        <h2 class="shimmer">ADMIN DASHBOARD</h2>
-        <button class="btn btn-gold" onclick="closeAdmin()">BACK TO APP</button>
-        <div id="pending-withdrawals"></div>
+    <!-- Admin Panel (Overlay) -->
+    <div id="admin-panel" class="
+
+fixed inset-0 bg-black z-[100] hidden overflow-y-auto p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="shimmer text-xl font-bold">OWNER DASHBOARD</h2>
+            <button onclick="closeAdmin()" class="text-red-500 font-bold">CLOSE</button>
+        </div>
+        <div id="pending-withdrawals" class="space-y-4"></div>
     </div>
 
-    <div class="tab-bar">
-        <a href="#" class="tab-item active" onclick="showSection('app')"><i class="fa fa-home fa-2x"></i><br>Home</a>
-        <a href="#" class="tab-item" onclick="openAdminPrompt()"><i class="fa fa-user-shield fa-2x"></i><br>Admin</a>
+    <!-- Navigation -->
+    <div class="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-yellow-900/50 flex justify-around p-3 backdrop-blur-md">
+        <button onclick="showSection('home')" class="text-yellow-500 flex flex-col items-center"><i class="fa fa-home"></i><span class="text-[10px]">Home</span></button>
+        <button onclick="openAdminPrompt()" class="text-gray-500 flex flex-col items-center"><i class="fa fa-shield-halved"></i><span class="text-[10px]">Admin</span></button>
     </div>
 
-    <!-- Firebase -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
     <script src="app.js"></script>
