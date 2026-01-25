@@ -1,175 +1,177 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PAPERHOUSE INC | PREMIER</title>
+    <title>PAPERHOUSE INC | PRO</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src='//libtl.com/sdk.js' data-zone='10337795' data-sdk='show_10337795'></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root { --primary: #ffd700; --glass: rgba(255, 255, 255, 0.08); --bg: #0a0a0a; }
+        :root { --gold: #ffd700; --glass: rgba(255, 255, 255, 0.07); --bg: #080808; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
-            margin: 0; font-family: 'Poppins', sans-serif; background: var(--bg); color: white; 
-            transition: background 0.4s ease; min-height: 100vh; overflow-x: hidden;
+            margin: 0; font-family: 'Outfit', sans-serif; background: var(--bg); color: white; 
+            transition: background 0.3s; overflow-x: hidden;
         }
         .brick-bg {
             background-image: linear-gradient(335deg, #b00 23px, transparent 23px), linear-gradient(155deg, #d00 23px, transparent 23px), linear-gradient(335deg, #b00 23px, transparent 23px), linear-gradient(155deg, #d00 23px, transparent 23px);
             background-size: 58px 58px; background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px;
         }
-        #app { max-width: 500px; margin: 0 auto; position: relative; }
-        .view { display: none; padding: 20px 20px 120px 20px; animation: fadeIn 0.3s; }
+        #app { max-width: 500px; margin: 0 auto; min-height: 100vh; position: relative; }
+        .view { display: none; padding: 20px 20px 120px 20px; animation: slideUp 0.3s ease; }
         .view.active { display: block; }
-        @keyframes fadeIn { from {opacity:0; transform: translateY(5px);} to {opacity:1; transform: translateY(0);} }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        .card { background: var(--glass); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px); }
+        .card { background: var(--glass); border-radius: 20px; padding: 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px); }
         .btn { 
-            width: 100%; border: none; padding: 16px; border-radius: 15px; font-weight: 800; 
-            cursor: pointer; margin: 8px 0; display: flex; align-items: center; justify-content: center; gap: 10px;
-            transition: 0.2s; text-transform: uppercase;
+            width: 100%; border: none; padding: 16px; border-radius: 14px; font-weight: 900; 
+            cursor: pointer; margin: 8px 0; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
         }
-        .btn-gold { background: var(--primary); color: black; box-shadow: 0 4px 15px rgba(255,215,0,0.2); }
-        .btn-blue { background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: white; }
-        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-gold { background: var(--gold); color: black; box-shadow: 0 5px 15px rgba(255,215,0,0.2); }
+        .btn-blue { background: linear-gradient(90deg, #00f2ff, #0061ff); color: white; }
+        .btn:disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
 
-        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: white; outline: none; }
-        
-        /* Navigation */
-        .nav { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 92%; background: rgba(0,0,0,0.9); display: flex; justify-content: space-around; padding: 15px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1); z-index: 1000; }
-        .nav i { font-size: 20px; color: #555; cursor: pointer; transition: 0.3s; }
-        .nav i.active { color: var(--primary); transform: scale(1.2); }
-
-        /* Lists & Tables */
-        .list-item { font-size: 11px; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 9px; }
-        .badge-pending { background: #ff9800; color: black; }
-        .badge-approve { background: #4caf50; color: white; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: rgba(0,0,0,0.6); color: white; font-size: 16px; }
 
         /* Chat */
-        #chat-render { height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; }
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 13px; line-height: 1.4; }
-        .msg-self { align-self: flex-end; background: var(--primary); color: black; border-bottom-right-radius: 2px; }
+        #chat-content { height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; border-radius: 15px; }
+        .msg { padding: 10px 15px; border-radius: 15px; max-width: 85%; line-height: 1.4; font-size: 14px; }
+        .msg-self { align-self: flex-end; background: var(--gold); color: black; border-bottom-right-radius: 2px; }
         .msg-other { align-self: flex-start; background: #222; border-bottom-left-radius: 2px; }
 
-        /* Online list */
-        .online-tags { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0; }
-        .tag { background: rgba(0,255,0,0.1); border: 1px solid rgba(0,255,0,0.2); padding: 4px 10px; border-radius: 20px; font-size: 10px; white-space: nowrap; color: #00ff00; }
+        /* Navigation */
+        .nav { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 450px; background: rgba(0,0,0,0.9); display: flex; justify-content: space-around; padding: 16px; border-radius: 25px; border: 1px solid rgba(255,215,0,0.3); backdrop-filter: blur(20px); z-index: 1000; }
+        .nav i { font-size: 22px; color: #444; transition: 0.3s; cursor: pointer; }
+        .nav i.active { color: var(--gold); transform: scale(1.2); text-shadow: 0 0 10px var(--gold); }
 
-        footer { text-align: center; font-size: 10px; padding: 20px; opacity: 0.5; margin-bottom: 80px;}
+        /* History Tables */
+        .hist-card { font-size: 11px; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .status { padding: 3px 8px; border-radius: 5px; font-weight: 900; text-transform: uppercase; font-size: 9px; }
+        .s-pending { background: #ff9800; color: black; }
+        .s-approve { background: #4caf50; color: white; }
+        .s-denied { background: #f44336; color: white; }
+
+        /* Leaderboard */
+        .lb-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; }
+        .rank { width: 30px; font-weight: 900; color: var(--gold); }
+
+        .online-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; }
+        .on-tag { background: rgba(0,255,0,0.1); border: 1px solid rgba(0,255,0,0.3); padding: 5px 12px; border-radius: 20px; font-size: 11px; white-space: nowrap; color: #00ff00; }
+
+        footer { text-align: center; font-size: 10px; padding: 30px; opacity: 0.5; margin-bottom: 80px; }
     </style>
 </head>
-<body onclick="cycleBackground(event)">
+<body onclick="cycleBg(event)">
 
 <div id="app">
     <!-- Home / Ads -->
     <div id="home" class="view active">
         <center>
-            <h2 style="margin:0; font-weight:800; color:var(--primary)">PAPERHOUSE INC</h2>
-            <div class="online-tags" id="online-list"></div>
+            <h1 style="margin:0; font-weight:900; color:var(--gold)">PAPERHOUSE INC</h1>
+            <div class="online-scroll" id="online-list"></div>
         </center>
         
-        <div class="card" style="text-align:center; margin-top:15px;">
-            <div style="font-size:11px; opacity:0.6;">TOTAL BALANCE</div>
-            <div style="font-size:40px; font-weight:800;">₱ <span id="bal">0.0000</span></div>
-            <div style="font-size:10px; color:var(--primary)">@<span id="my-username">...</span></div>
+        <div class="card" style="text-align:center;">
+            <div style="font-size:11px; letter-spacing: 2px;">WALLET BALANCE</div>
+            <div style="font-size:45px; font-weight:900; margin:5px 0;">₱ <span id="u-bal">0.0000</span></div>
+            <small>@<span id="u-name">...</span></small>
         </div>
 
-        <button id="vip-btn" class="btn btn-gold" onclick="handleAd('vip')">
+        <button id="vip-btn" class="btn btn-gold" onclick="runAd('vip')">
             <i class="fas fa-crown"></i> VIP ADS (₱0.0112) <span id="vip-timer"></span>
         </button>
-        <button id="prem-btn" class="btn btn-blue" onclick="handleAd('prem')">
+        <button id="prem-btn" class="btn btn-blue" onclick="runAd('prem')">
             <i class="fas fa-bolt"></i> PREMIUM ADS (₱0.0162) <span id="prem-timer"></span>
         </button>
     </div>
 
     <!-- Leaderboard -->
     <div id="leaderboard" class="view">
-        <h3 style="color:var(--primary)">Top Earners</h3>
-        <div class="card" id="leader-list" style="padding:0"></div>
+        <h2 style="color:var(--gold)">Live Leaderboard</h2>
+        <div class="card" id="lb-content" style="padding:0"></div>
     </div>
 
     <!-- Chat -->
     <div id="chat" class="view">
-        <h3 style="color:var(--primary)">Global Chat</h3>
-        <div class="card" id="chat-render"></div>
+        <h2 style="color:var(--gold)">Global Chat</h2>
+        <div class="card" id="chat-content"></div>
         <div style="display:flex; gap:8px;">
-            <input type="text" id="chat-input" placeholder="Enter message...">
-            <button class="btn btn-gold" style="width:70px; margin:0;" onclick="handleChat()">Send</button>
-        </div>
-        <center><small style="color:var(--primary); font-size:9px; margin-top:5px;">Send triggers 3 Ads &
+            <input type="text" id="ch
 
-₱0.0162 reward!</small></center>
+at-in" placeholder="Message...">
+            <button class="btn btn-gold" style="width:70px; margin:0;" onclick="sendChat()">Send</button>
+        </div>
+        <p style="font-size:10px; color:var(--gold); text-align:center;">Chat Reward: ₱0.0162 (Syncing...)</p>
     </div>
 
-    <!-- Wallet / Withdrawal -->
-    <div id="wallet" class="view">
-        <h3 style="color:var(--primary)">Withdrawals</h3>
+    <!-- Withdrawal -->
+    <div id="withdraw" class="view">
+        <h2 style="color:var(--gold)">Cashout (GCash)</h2>
         <div class="card">
-            <input type="text" id="gc-name" placeholder="GCash Name">
-            <input type="text" id="gc-num" placeholder="GCash Number">
-            <p style="font-size:10px; opacity:0.6;">Minimum: ₱0.02</p>
-            <button class="btn btn-gold" onclick="submitPayout()">WITHDRAW NOW</button>
+            <input type="text" id="w-name" placeholder="Account Name">
+            <input type="text" id="w-num" placeholder="Account Number">
+            <button class="btn btn-gold" onclick="requestPayout()">SUBMIT REQUEST</button>
         </div>
-        <h4>Personal History</h4>
-        <div id="payout-history" class="card" style="padding:0"></div>
+        <h4>Transaction History</h4>
+        <div id="w-history"></div>
     </div>
 
     <!-- Referrals -->
     <div id="refer" class="view">
-        <h3 style="color:var(--primary)">Invite Friends</h3>
+        <h2 style="color:var(--gold)">Affiliate Program</h2>
         <div class="card" style="text-align:center">
-            <small>Your Referral Code</small>
-            <h2 id="ref-code" style="color:var(--primary); margin:5px 0;">...</h2>
-            <div style="display:flex; justify-content:space-around; margin-top:15px; border-top:1px solid #333; padding-top:10px;">
-                <div><small>Invites</small><br><b id="ref-count">0</b></div>
-                <div><small>Claimable</small><br><b class="gold" id="ref-bonus">0.00</b></div>
+            <p>Invite Code: <b id="u-code" style="color:var(--gold)"></b></p>
+            <div style="display:flex; justify-content:space-around; border-top:1px solid #333; padding-top:15px;">
+                <div><small>Referrals</small><br><b id="u-ref-count">0</b></div>
+                <div><small>Claimable</small><br><b id="u-ref-bonus" style="color:var(--gold)">0.00</b></div>
             </div>
-            <button class="btn btn-gold" style="margin-top:15px;" onclick="claimBonus()">CLAIM TO BALANCE</button>
+            <button class="btn btn-gold" style="margin-top:15px;" onclick="claimBonus()">CLAIM TO WALLET</button>
         </div>
-        <input type="text" id="refer-apply" placeholder="Referrer Username">
-        <button class="btn btn-blue" onclick="applyReferrer()">SET REFERRER</button>
+        <input type="text" id="ref-apply" placeholder="Referrer Username">
+        <button class="btn btn-blue" onclick="setReferrer()">APPLY REFERRER</button>
     </div>
 
     <!-- Help -->
     <div id="help" class="view">
-        <h3 style="color:var(--primary)">🗝 Support Center 🗝</h3>
-        <a href="https://t.me/paperhouseinc" target="_blank" class="card" style="display:block; text-decoration:none; color:white;"><i class="fab fa-telegram"></i> Group Chat</a>
-        <a href="https://t.me/PAPERHOUSE_INC" target="_blank" class="card" style="display:block; text-decoration:none; color:white;"><i class="fas fa-bullhorn"></i> Channel</a>
-        <a href="https://facebook.com/groups/1193693469083843/" target="_blank" class="card" style="display:block; text-decoration:none; color:white;"><i class="fab fa-facebook"></i> Facebook Group</a>
+        <h2 style="color:var(--gold)">🗝 Support 🗝</h2>
+        <a href="https://t.me/paperhouseinc" class="card" style="display:block; text-decoration:none; color:white;">Group Chat</a>
+        <a href="https://t.me/PAPERHOUSE_INC" class="card" style="display:block; text-decoration:none; color:white;">Official Channel</a>
+        <a href="https://facebook.com/groups/1193693469083843/" class="card" style="display:block; text-decoration:none; color:white;">Facebook Group</a>
     </div>
 
     <!-- Admin -->
     <div id="admin" class="view">
-        <h3 style="color:var(--primary)">Owner Dash</h3>
-        <div id="admin-login">
-            <input type="password" id="admin-pass" placeholder="Password">
+        <h2 style="color:var(--gold)">Admin Panel</h2>
+        <div id="adm-gate">
+            <input type="password" id="adm-pass" placeholder="Password">
             <button class="btn btn-gold" onclick="authAdmin()">LOGIN</button>
         </div>
-        <div id="admin-content" style="display:none">
+        <div id="adm-panel" style="display:none">
             <div class="card">
-                <small>TOTAL WITHDRAWN</small>
-                <h2 style="color:var(--primary); margin:5px 0;">₱ <span id="adm-total">0.00</span></h2>
+                <small>TOTAL DISBURSED</small>
+                <h1 id="adm-total">₱0.00</h1>
             </div>
-            <h4>Pending Requests</h4>
+            <h4>Pending Payouts</h4>
             <div id="adm-pending"></div>
-            <h4>History</h4>
+            <h4>Approved History</h4>
             <div id="adm-history"></div>
         </div>
     </div>
 
     <footer>
-        PAPERHOUSE INC | <span id="clock"></span><br>
+        PAPERHOUSE INC | <span id="live-time"></span><br>
         otico.isai2@gmail.com
     </footer>
 
     <nav class="nav">
-        <i class="fas fa-home active" onclick="tab('home', this)"></i>
-        <i class="fas fa-trophy" onclick="tab('leaderboard', this)"></i>
-        <i class="fas fa-comments" onclick="tab('chat', this)"></i>
-        <i class="fas fa-wallet" onclick="tab('wallet', this)"></i>
+        <i class="fas fa-house active" onclick="tab('home', this)"></i>
+        <i class="fas fa-ranking-star" onclick="tab('leaderboard', this)"></i>
+        <i class="fas fa-comment" onclick="tab('chat', this)"></i>
+        <i class="fas fa-wallet" onclick="tab('withdraw', this)"></i>
         <i class="fas fa-users" onclick="tab('refer', this)"></i>
         <i class="fas fa-user-shield" onclick="tab('admin', this)"></i>
     </nav>
