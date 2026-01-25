@@ -1,149 +1,158 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PAPERHOUSE INC ADS</title>
+    <title>PAPERHOUSE INC | PREMIER</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src='//libtl.com/sdk.js' data-zone='10337795' data-sdk='show_10337795'></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root { --gold: #ffd700; --glass: rgba(255, 255, 255, 0.07); --bg: #0a0a0a; }
+        :root { --primary: #ffd700; --glass: rgba(255, 255, 255, 0.08); --bg: #0a0a0a; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
-            margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: white; 
-            transition: background 0.3s ease; overflow-x: hidden;
+            margin: 0; font-family: 'Poppins', sans-serif; background: var(--bg); color: white; 
+            transition: background 0.4s ease; min-height: 100vh; overflow-x: hidden;
         }
         .brick-bg {
             background-image: linear-gradient(335deg, #b00 23px, transparent 23px), linear-gradient(155deg, #d00 23px, transparent 23px), linear-gradient(335deg, #b00 23px, transparent 23px), linear-gradient(155deg, #d00 23px, transparent 23px);
             background-size: 58px 58px; background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px;
         }
-        #app { max-width: 500px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
-        .view { display: none; padding: 20px 20px 100px 20px; animation: slideIn 0.2s ease-out; }
+        #app { max-width: 500px; margin: 0 auto; position: relative; }
+        .view { display: none; padding: 20px 20px 120px 20px; animation: fadeIn 0.3s; }
         .view.active { display: block; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from {opacity:0; transform: translateY(5px);} to {opacity:1; transform: translateY(0);} }
 
-        .card { background: var(--glass); border-radius: 16px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+        .card { background: var(--glass); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px); }
         .btn { 
-            width: 100%; border: none; padding: 14px; border-radius: 12px; font-weight: 800; 
-            cursor: pointer; margin: 5px 0; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; border: none; padding: 16px; border-radius: 15px; font-weight: 800; 
+            cursor: pointer; margin: 8px 0; display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: 0.2s; text-transform: uppercase;
         }
-        .btn-gold { background: var(--gold); color: black; }
-        .btn-prem { background: linear-gradient(90deg, #00d2ff, #3a7bd5); color: white; }
-        .btn:disabled { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
+        .btn-gold { background: var(--primary); color: black; box-shadow: 0 4px 15px rgba(255,215,0,0.2); }
+        .btn-blue { background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: white; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: white; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: white; outline: none; }
         
-        /* Chat UI */
-        #chat-box { height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 10px; }
-        .msg { padding: 8px 12px; border-radius: 12px; max-width: 80%; font-size: 14px; }
-        .msg-self { align-self: flex-end; background: var(--gold); color: black; }
-        .msg-other { align-self: flex-start; background: #222; color: white; }
-
         /* Navigation */
-        .nav { position: fixed; bottom: 0; width: 100%; max-width: 500px; background: rgba(0,0,0,0.9); display: flex; justify-content: space-around; padding: 12px; border-top: 1px solid #333; z-index: 100; }
-        .nav i { font-size: 20px; color: #666; cursor: pointer; }
-        .nav i.active { color: var(--gold); }
+        .nav { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 92%; background: rgba(0,0,0,0.9); display: flex; justify-content: space-around; padding: 15px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1); z-index: 1000; }
+        .nav i { font-size: 20px; color: #555; cursor: pointer; transition: 0.3s; }
+        .nav i.active { color: var(--primary); transform: scale(1.2); }
 
-        /* History Tables */
-        .hist-item { font-size: 11px; padding: 10px; border-bottom: 1px solid #222; }
-        .status { font-weight: bold; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; font-size: 9px; }
-        .status-pending { background: orange; color: black; }
-        .status-approve { background: #00ff00; color: black; }
-        .status-denied { background: red; color: white; }
+        /* Lists & Tables */
+        .list-item { font-size: 11px; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 9px; }
+        .badge-pending { background: #ff9800; color: black; }
+        .badge-approve { background: #4caf50; color: white; }
 
-        /* Online List */
-        .online-list { display: flex; flex-wrap: wrap; gap: 5px; }
-        .u-dot { padding: 4px 8px; background: rgba(0,255,0,0.1); border-radius: 20px; font-size: 10px; border: 1px solid rgba(0,255,0,0.2); }
+        /* Chat */
+        #chat-render { height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; }
+        .msg { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 13px; line-height: 1.4; }
+        .msg-self { align-self: flex-end; background: var(--primary); color: black; border-bottom-right-radius: 2px; }
+        .msg-other { align-self: flex-start; background: #222; border-bottom-left-radius: 2px; }
 
-        footer { text-align: center; font-size: 10px; padding: 20px; opacity: 0.6; }
+        /* Online list */
+        .online-tags { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0; }
+        .tag { background: rgba(0,255,0,0.1); border: 1px solid rgba(0,255,0,0.2); padding: 4px 10px; border-radius: 20px; font-size: 10px; white-space: nowrap; color: #00ff00; }
+
+        footer { text-align: center; font-size: 10px; padding: 20px; opacity: 0.5; margin-bottom: 80px;}
     </style>
 </head>
-<body onclick="handleBgCycle(event)">
+<body onclick="cycleBackground(event)">
 
 <div id="app">
-    <!-- Home View -->
+    <!-- Home / Ads -->
     <div id="home" class="view active">
         <center>
-            <h2 style="margin:0; color:var(--gold)">PAPERHOUSE INC</h2>
-            <p style="font-size:12px; margin:5px">@<span id="tg-user">...</span></p>
+            <h2 style="margin:0; font-weight:800; color:var(--primary)">PAPERHOUSE INC</h2>
+            <div class="online-tags" id="online-list"></div>
         </center>
-
-        <div class="card" style="text-align:center">
-            <small>WALLET BALANCE</small>
-            <h1 style="margin:5px 0; font-size:36px">₱ <span id="balance">0.0000</span></h1>
-            <div class="online-list" id="on-list"></div>
+        
+        <div class="card" style="text-align:center; margin-top:15px;">
+            <div style="font-size:11px; opacity:0.6;">TOTAL BALANCE</div>
+            <div style="font-size:40px; font-weight:800;">₱ <span id="bal">0.0000</span></div>
+            <div style="font-size:10px; color:var(--primary)">@<span id="my-username">...</span></div>
         </div>
 
-        <button id="btn-vip" class="btn btn-gold" onclick="adAction('vip')">
-            <i class="fas fa-crown"></i> VIP ADS (₱0.0112) <span id="cd-vip"></span>
+        <button id="vip-btn" class="btn btn-gold" onclick="handleAd('vip')">
+            <i class="fas fa-crown"></i> VIP ADS (₱0.0112) <span id="vip-timer"></span>
         </button>
-
-        <button id="btn-prem" class="btn btn-prem" onclick="adAction('prem')">
-            <i class="fas fa-gem"></i> PREMIUM ADS (₱0.0162) <span id="cd-prem"></span>
+        <button id="prem-btn" class="btn btn-blue" onclick="handleAd('prem')">
+            <i class="fas fa-bolt"></i> PREMIUM ADS (₱0.0162) <span id="prem-timer"></span>
         </button>
     </div>
 
-    <!-- Chat View -->
+    <!-- Leaderboard -->
+    <div id="leaderboard" class="view">
+        <h3 style="color:var(--primary)">Top Earners</h3>
+        <div class="card" id="leader-list" style="padding:0"></div>
+    </div>
+
+    <!-- Chat -->
     <div id="chat" class="view">
-        <h3>Live Chat</h3>
-        <div class="card" id="chat-box"></div>
-        <div style="display:flex; gap:5px">
-            <input type="text" id="chat-in" placeholder="Message...">
-            <button class="btn btn-gold" style="width:70px" onclick="sendChat()">Send</button>
+        <h3 style="color:var(--primary)">Global Chat</h3>
+        <div class="card" id="chat-render"></div>
+        <div style="display:flex; gap:8px;">
+            <input type="text" id="chat-input" placeholder="Enter message...">
+            <button class="btn btn-gold" style="width:70px; margin:0;" onclick="handleChat()">Send</button>
         </div>
-        <p style="font-size:10px; text-align:center; color:var(--gold)">Send message triggers 3 High CPM Ads!</p>
+        <center><small style="color:var(--primary); font-size:9px; margin-top:5px;">Send triggers 3 Ads &
+
+₱0.0162 reward!</small></center>
     </div>
 
-    <!-- Withdraw View -->
-    <div id="withdraw" class="view">
-        <h3>Withdrawal</h3>
+    <!-- Wallet / Withdrawal -->
+    <div id="wallet" class="view">
+        <h3 style="color:var(--primary)">Withdrawals</h3>
         <div class="card">
-            <input type="text" id="w-name" placeholder="GCash Name">
-            <input type="text" id="w-num" placeholder="GCash Number">
-            <button class="btn btn-gold" onclick="submitWithdraw()">WITHDRAW NOW</button>
+            <input type="text" id="gc-name" placeholder="GCash Name">
+            <input type="text" id="gc-num" placeholder="GCash Number">
+            <p style="font-size:10px; opacity:0.6;">Minimum: ₱0.02</p>
+            <button class="btn btn-gold" onclick="submitPayout()">WITHDRAW NOW</button>
         </div>
-        <h4>History</h4>
-        <div id="w-history"></div>
+        <h4>Personal History</h4>
+        <div id="payout-history" class="card" style="padding:0"></div>
     </div>
 
-    <!-- Referral View -->
+    <!-- Referrals -->
     <div id="refer" class="view">
-        <h3>Referrals (8%)</h3>
+        <h3 style="color:var(--primary)">Invite Friends</h3>
         <div class="card" style="text-align:center">
-            <p>C
-
-ode: <b id="my-code" style="color:var(--gold)"></b></p>
-            <div style="display:flex; justify-content:space-between">
-                <span>Invited: <b id="ref-count">0</b></span>
-                <span>Bonus: <b id="ref-bonus">0.00</b></span>
+            <small>Your Referral Code</small>
+            <h2 id="ref-code" style="color:var(--primary); margin:5px 0;">...</h2>
+            <div style="display:flex; justify-content:space-around; margin-top:15px; border-top:1px solid #333; padding-top:10px;">
+                <div><small>Invites</small><br><b id="ref-count">0</b></div>
+                <div><small>Claimable</small><br><b class="gold" id="ref-bonus">0.00</b></div>
             </div>
-            <button class="btn btn-gold" style="margin-top:10px" onclick="claimBonus()">CLAIM BONUS</button>
+            <button class="btn btn-gold" style="margin-top:15px;" onclick="claimBonus()">CLAIM TO BALANCE</button>
         </div>
-        <input type="text" id="ref-code" placeholder="Enter Referrer Code">
-        <button class="btn btn-prem" onclick="applyRef()">Apply Referrer</button>
+        <input type="text" id="refer-apply" placeholder="Referrer Username">
+        <button class="btn btn-blue" onclick="applyReferrer()">SET REFERRER</button>
     </div>
 
-    <!-- Help View -->
+    <!-- Help -->
     <div id="help" class="view">
-        <h3>🗝 Help Section 🗝</h3>
-        <a href="https://t.me/paperhouseinc" target="_blank" class="card" style="display:block; text-decoration:none; color:white;">Telegram Group</a>
-        <a href="https://t.me/PAPERHOUSE_INC" target="_blank" class="card" style="display:block; text-decoration:none; color:white;">Telegram Channel</a>
-        <a href="https://facebook.com/groups/1193693469083843/" target="_blank" class="card" style="display:block; text-decoration:none; color:white;">Facebook Group</a>
+        <h3 style="color:var(--primary)">🗝 Support Center 🗝</h3>
+        <a href="https://t.me/paperhouseinc" target="_blank" class="card" style="display:block; text-decoration:none; color:white;"><i class="fab fa-telegram"></i> Group Chat</a>
+        <a href="https://t.me/PAPERHOUSE_INC" target="_blank" class="card" style="display:block; text-decoration:none; color:white;"><i class="fas fa-bullhorn"></i> Channel</a>
+        <a href="https://facebook.com/groups/1193693469083843/" target="_blank" class="card" style="display:block; text-decoration:none; color:white;"><i class="fab fa-facebook"></i> Facebook Group</a>
     </div>
 
-    <!-- Admin View -->
+    <!-- Admin -->
     <div id="admin" class="view">
-        <h3>Admin Dashboard</h3>
-        <div id="admin-auth">
-            <input type="password" id="adm-pass" placeholder="Password">
-            <button class="btn btn-gold" onclick="loginAdmin()">Login</button>
+        <h3 style="color:var(--primary)">Owner Dash</h3>
+        <div id="admin-login">
+            <input type="password" id="admin-pass" placeholder="Password">
+            <button class="btn btn-gold" onclick="authAdmin()">LOGIN</button>
         </div>
-        <div id="admin-panel" style="display:none">
-            <h4>Total Disbursed: ₱<span id="adm-total">0.00</span></h4>
+        <div id="admin-content" style="display:none">
+            <div class="card">
+                <small>TOTAL WITHDRAWN</small>
+                <h2 style="color:var(--primary); margin:5px 0;">₱ <span id="adm-total">0.00</span></h2>
+            </div>
             <h4>Pending Requests</h4>
             <div id="adm-pending"></div>
             <h4>History</h4>
@@ -152,17 +161,17 @@ ode: <b id="my-code" style="color:var(--gold)"></b></p>
     </div>
 
     <footer>
-        PAPERHOUSE INC | <span id="f-time"></span><br>
+        PAPERHOUSE INC | <span id="clock"></span><br>
         otico.isai2@gmail.com
     </footer>
 
     <nav class="nav">
-        <i class="fas fa-home active" onclick="showTab('home', this)"></i>
-        <i class="fas fa-comments" onclick="showTab('chat', this)"></i>
-        <i class="fas fa-wallet" onclick="showTab('withdraw', this)"></i>
-        <i class="fas fa-users" onclick="showTab('refer', this)"></i>
-        <i class="fas fa-info-circle" onclick="showTab('help', this)"></i>
-        <i class="fas fa-lock" onclick="showTab('admin', this)"></i>
+        <i class="fas fa-home active" onclick="tab('home', this)"></i>
+        <i class="fas fa-trophy" onclick="tab('leaderboard', this)"></i>
+        <i class="fas fa-comments" onclick="tab('chat', this)"></i>
+        <i class="fas fa-wallet" onclick="tab('wallet', this)"></i>
+        <i class="fas fa-users" onclick="tab('refer', this)"></i>
+        <i class="fas fa-user-shield" onclick="tab('admin', this)"></i>
     </nav>
 </div>
 
