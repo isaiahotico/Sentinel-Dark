@@ -16,188 +16,192 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Telegram Context
+// Telegram Web App
 const tg = window.Telegram.WebApp;
-const user = tg.initDataUnsafe?.user || { id: "DEV_MODE", username: "Dev" };
-const username = user.username || `User_${user.id}`;
-const uid = user.id.toString();
+const tgUser = tg.initDataUnsafe?.user || { id: "LocalDev", username: "Guest" };
+const username = tgUser.username || `User_${tgUser.id}`;
+const uid = tgUser.id.toString();
 
-document.getElementById('my-username').innerText = username;
-document.getElementById('ref-code').innerText = username;
+document.getElementById('u-name').innerText = username;
+document.getElementById('u-code').innerText = username;
 
-const uRef = ref(db, 'users/' + uid);
+const userRef = ref(db, 'users/' + uid);
+let userData = {};
 
-// --- State Engine ---
-onValue(uRef, snap => {
-    const d = snap.val();
-    if (!d) {
-        set(uRef, { username, balance: 0, totalAds: 0, refCount: 0, refBonus: 0, lastVip: 0, lastPrem: 0, lastChat: 0 });
+// --- REAL-TIME DATA SYNC ---
+onValue(userRef, snap => {
+    userData = snap.val();
+    if (!userData) {
+        set(userRef, { username, balance: 0, refCount: 0, refBonus: 0, lastVip: 0, lastPrem: 0, lastChat: 0 });
         return;
     }
-    document.getElementById('bal').innerText = d.balance.toFixed(4);
-    document.getElementById('ref-count').innerText = d.refCount || 0;
-    document.getElementById('ref-bonus').innerText = (d.refBonus || 0).toFixed(4);
-    
-    const now = Date.now();
-    const updateTimer = (btn, span, last, min) => {
-        const diff = Math.max(0, Math.ceil((min * 60 * 1000 - (now - (last || 0))) / 1000));
-        document.getElementById(btn).disabled = diff > 0;
-        document.getElementById(span).innerText = diff > 0 ? `(${Math.floor(diff/60)}m ${diff%60}s)` : "";
-    };
-    updateTimer('vip-btn', 'vip-timer', d.lastVip, 10);
-    updateTimer('prem-btn', 'prem-timer', d.lastPrem, 5);
+    document.getElementById('u-bal').innerText = userData.balance.toFixed(4);
+    document.getElementById('u-ref-count').innerText = userData.refCount || 0;
+    document.getElementById('u-ref-bonus').innerText = (userData.refBonus || 0).toFixed(4);
 });
 
-// Online List
-const pRef = ref(db, 'presence/' + uid);
-onValue(ref(db, '.info/connected'), s => { if(s.val()) { onDisconnect(pRef).remove(); set(pRef, { username }); } });
+// Presence & Online List
+const presenceRef = ref(db, 'presence/' + uid);
+onValue(ref(db, '.info/connected'), s => { if(s.val()) { onDisconnect(presenceRef).remove(); set(presenceRef, { username }); } });
 onValue(ref(db, 'presence'), s => {
-    const box = document.getElementById('online-list'); box.innerHTML = "";
-    s.forEach(c => box.innerHTML += `<div class="tag">@${c.val().username}</div>`);
+    const list = document.getElementById('online-list'); list.innerHTML = "";
+    s.forEach(c => list.innerHTML += `<div class="on-tag"><i class="fas fa-circle" style="font-size:7px"></i> @${c.val().username}</div>`);
 });
 
-// --- Ad Combo Engine ---
-window.handleAd = async (type) => {
+// --- THE 1-SECOND SYNC TICKER ---
+setInterval(() => {
+    const now = Date.now();
+    document.getElementById('live-time').innerText = new Date().toLocaleString();
+
+    if (userData) {
+        const check = (last, min, btn, txt) => {
+            const diff = Math.max(0, Math.ceil((min * 60 * 1000 - (now - (last || 0))) / 1000));
+            document.getElementById(btn).disabled = diff > 0;
+            document.getElementById(txt).innerText = diff > 0 ? `(${Math.floor(diff/60)}m ${diff%60}s)` : "";
+        };
+        check(userData.lastVip, 10, 'vip-btn', 'vip-timer');
+        check(userData.lastPrem, 5, 'prem-btn', 'prem-timer');
+    }
+}, 1000);
+
+// --- ADS & REWARDS ---
+window.runAd = async (type) => {
     if (type === 'prem') { await show_10337795(); await show_10337795(); }
-    show_10337795('pop').then(() => grant(type === 'vip' ? 0.0112 : 0.0162, type === 'vip' ? 'lastVip' : 'lastPrem'));
+    show_10337795('pop').then(() => grant(type));
 };
 
-function grant(amt, field) {
-    get(uRef).then(s => {
-        const d = s.val();
-        const upd = { balance: d.balance + amt, totalAds: (d.totalAds || 0) + 1 };
-        upd[field] = Date.now();
-        update(uRef, upd);
-        if (d.referredBy) {
-            get(ref(db, 'users')).then(all => all.forEach(u => {
-                if(u.val().username === d.referredBy) update(ref(db, 'users/'+u.key), { refBonus: (u.val().refBonus || 0) + (amt * 0.08) });
-            }));
-        }
-    });
+function grant(type) {
+    const reward = type === 'vip' ? 0.0112 : 0.0162;
+    const field = type === 'vip' ? 'lastVip' : 'lastPrem';
+    const upd = { balance: userData.balance + reward };
+    upd[field] = Date.now();
+    update(userRef, upd);
+    if (userData.referredBy) {
+        get(ref(db, 'users')).then(all => all.forEach(u => {
+            if(u.val().username === userData.referredBy) update(ref(db, 'users/'+u.key), { refBonus: (u.val().refBonus || 0) + (reward * 0.08) });
+        }));
+    }
 }
 
-// --- Chat ---
-window.handleChat = () => {
-    const msg = document.getElementById('chat-input').value;
-    if(!msg) return;
-    get(uRef).then(async s => {
-        const d = s.val();
-        if(Date.now() - (d.lastChat || 0) > 300000) {
-            await show_10337795(); await show_10337795();
-            show_10337795('pop').then(() => {
-                grant(0.0162, 'lastChat');
-                push(ref(db, 'chat'), { uid, username, msg, timestamp: serverTimestamp() });
-            });
-        } else {
+// --- CHAT ---
+window.sendChat = () => {
+    const msg = document.getElementById('chat-in').value;
+    if (!msg) return;
+    if (Date.now() - (userData.lastChat || 0) > 300000) {
+        show_10337795('pop').then(() => {
+            update(userRef, { balance: userData.balance + 0.0162, lastChat: Date.now() });
             push(ref(db, 'chat'), { uid, username, msg, timestamp: serverTimestamp() });
-        }
-        document.getElementById('chat-input').value = "";
-    });
+        });
+    } else {
+        push(ref(db, 'chat'), { uid, username, msg, timestamp: serverTimestamp() });
+    }
+    document.getElementById('chat-in').value = "";
 };
 
 onValue(query(ref(db, 'chat'), limitToLast(15)), s => {
-    const render = document.getElementById('chat-render'); render.innerHTML = "";
+    const box = document.getElementById('chat-content'); box.innerHTML = "";
     s.forEach(c => {
         const m = c.val();
-        render.innerHTML += `<div class="msg ${m.uid === uid ? 'msg-self' : 'msg-other'}"><b>@${m.username}</b><br>${m.msg}</div>`;
+        box.innerHTML += `<div class="msg ${m.uid === uid ? 'msg-self' : 'msg-other'}"><b>@${m.username}</b><br>${m.msg}</div>`;
     });
-    render.scrollTop = render.scrollHeight;
+    box.scrollTop = box.scrollHeight;
 });
 
-// --- Leaderboard ---
-onValue(query(ref(db, 'users'), orderByChild('totalAds'), limitToLast(10)), s => {
-    const list = document.getElementById('leader-list'); list.innerHTML = "";
+// --- LIVE LEADERBOARD (1-Second Sync via Firebase) ---
+onValue(query(ref(db, 'users'), orderByChild('balance'), limitToLast(10)), s => {
+    const box = document.getElementById('lb-content'); box.innerHTML = "";
     let items = []; s.forEach(c => items.push(c.val()));
     items.reverse().forEach((u, i) => {
-        list.innerHTML += `<div class="list-item"><span>#${i+1} @${u.username}</span><b>${u.totalAds} Ads</b></div>`;
+        box.innerHTML += `<div class="lb-row"><div class="rank">#${i+1}</div><div style="flex:1">@${u.username}</div><b>₱${u.balance.toFixed(2)}</b></div>`;
     });
 });
 
-// --- Withdrawal ---
-window.submitPayout = () => {
-    const name = document.getElementById('gc-name').value;
-    const gcash = document.getElementById('gc-num').value;
-    get(uRef).then(s => {
-        if(s.val().balance < 0.02) return alert("Min 0.02");
-        push(ref(db, 'withdrawals'), { uid, username, name, gcash, amount: s.val().balance, status: 'pending', timestamp: serverTimestamp() });
-        update(uRef, { balance: 0 });
-    });
+// --- WITHDRAWALS ---
+window.requestPayout = () => {
+    const n = document.getElementById('w-name').value;
+    const num = document.getElementById('w-num').value;
+    if (!n || !num) return alert("Fill all info");
+    if (userData.balance < 0.02) return alert("Min 0.02");
+    push(ref(db, 'withdrawals'), { uid, username, name: n, gcash: num, amount: userData.balance, status: 'pending', timestamp: serverTimestamp() });
+    update(userRef, { balance: 0 });
 };
 
 onValue(ref(db, 'withdrawals'), s => {
-    const list = document.getElementById('payout-history'); list.innerHTML = "";
+    const box = document.getElementById('w-history'); box.innerHTML = "";
     s.forEach(c => {
         const w = c.val();
-        if(w.uid === uid) {
-            list.innerHTML += `<div class="list-item"><div>₱${w.amount.toFixed(4)}<br><small>${new Date(w.timestamp).toLocaleString()}</small></div><span class="badge badge-${w.status}">${w.status}</span></div>`;
+        if (w.uid === uid) {
+            box.innerHTML += `<div class="hist-card">
+                <b>₱${w.amount.toFixed(4)}</b> <span class="status s-${w.status}">${w.status}</span><br>
+                ${w.name} | ${w.gcash}<br><small>${new Date(w.timestamp).toLocaleString()}</small>
+            </div>`;
         }
     });
 });
 
-// --- Admin Dashboard ---
+// --- ADMIN (FULL AUDIT) ---
 window.authAdmin = () => {
-    if(document.getElementById('admin-pass').value === "Propetas12") {
-        document.getElementById('admin-login').style.display = 'none';
-        document.getElementById('admin-content').style.display = 'block';
+    if (document.getElementById('adm-pass').value === "Propetas12") {
+        document.getElementById('adm-gate').style.display = "none";
+        document.getElementById('adm-panel').style.display = "block";
         loadAdmin();
     }
 };
 
 function loadAdmin() {
     onValue(ref(db, 'withdrawals'), s => {
-        const pend = document.getElementById('adm-pending');
-        const hist = document.getElementById('adm-history');
-        const total = document.getElementById('adm-total');
-        pend.innerHTML = ""; hist.innerHTML = ""; let sum = 0;
+        const pBox = document.getElementById('adm-pending');
+        const hBox = document.getElementById('adm-history');
+        const tBox = document.getElementById('adm-total');
+        pBox.innerHTML = ""; hBox.innerHTML = ""; let sum = 0;
         s.forEach(c => {
             const w = c.val();
-            const details = `<div class="list-item"><div>@${w.username} - ₱${w.amount.toFixed(2)}<br><small>${w.gcash} (${w.name}) - ${new Date(w.timestamp).toLocaleString()}</small></div>`;
-            if(w.status === 'pending') {
-                pend.innerHTML += details + `<div><button onclick="admSet('${c.key}','approve')">✔</button><button onclick="admSet('${c.key}','denied')">✖</button></div></div>`;
+            const row = `<div class="hist-card">
+                <b>@${w.username} - ₱${w.amount.toFixed(2)}</b><br>
+                ${w.gcash} (${w.name})<br><small>${new Date(w.timestamp).toLocaleString()}</small><br>`;
+            if (w.status === 'pending') {
+                pBox.innerHTML += row + `<button class="btn btn-gold" style="padding:5px; width:70px; display:inline-block;" onclick="admS('${c.key}','approve')">Approve</button>
+                                         <button class="btn btn-blue" style="padding:5px; width:70px; display:inline-block;" onclick="admS('${c.key}','denied')">Deny</button></div>`;
             } else {
                 if(w.status === 'approve') sum += w.amount;
-                hist.innerHTML += details + `<span class="badge badge-${w.status}">${w.status}</span></div>`;
+                hBox.innerHTML += row + `<span class="status s-${w.status}">${w.status}</span></div>`;
             }
         });
-        total.innerText = sum.toFixed(2);
+        tBox.innerText = `₱${sum.toFixed(2)}`;
     });
 }
-window.admSet = (k, s) => update(ref(db, `withdrawals/${k}`), { status: s });
+window.admS = (k, s) => update(ref(db, `withdrawals/${k}`), { status: s });
 
-// --- Background Engine ---
-const bgs = ["#0a0a0a", "pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
-let bgIdx = 0;
-window.cycleBackground = (e) => {
-    if(['BUTTON', 'INPUT', 'I'].includes(e.target.tagName)) return;
-    document.body.className = ""; document.body.style.backgroundColor = "";
-    const current = bgs[bgIdx];
-    if(current === 'bricks') document.body.classList.add('brick-bg');
-    else document.body.style.backgroundColor = current;
-    bgIdx = (bgIdx + 1) % bgs.length;
+// --- REFERRALS ---
+window.setReferrer = () => {
+    const refCode = document.getElementById('ref-apply').value.trim();
+    if (!userData.referredBy && refCode !== username) {
+        update(userRef, { referredBy: refCode });
+        get(ref(db, 'users')).then(all => all.forEach(u => {
+            if(u.val().username === refCode) update(ref(db, 'users/'+u.key), { refCount: (u.val().refCount || 0) + 1 });
+        }));
+    }
 };
 
-// --- Helpers ---
+window.claimBonus = () => {
+    if (userData.refBonus > 0) {
+        update(userRef, { balance: userData.balance + userData.refBonus, refBonus: 0 });
+    }
+};
+
+// --- NAVIGATION ---
 window.tab = (id, el) => {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav i').forEach(i => i.classList.remove('active'));
     document.getElementById(id).classList.add('active'); el.classList.add('active');
 };
-window.applyReferrer = () => {
-    const refU = document.getElementById('refer-apply').value.trim();
-    if(refU === username) return;
-    get(uRef).then(s => {
-        if(!s.val().referredBy) {
-            update(uRef, { referredBy: refU });
-            get(ref(db, 'users')).then(all => all.forEach(u => {
-                if(u.val().username === refU) update(ref(db, 'users/'+u.key), { refCount: (u.val().refCount || 0) + 1 });
-            }));
-        }
-    });
+
+const bgColors = ["#080808", "pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
+let bI = 0;
+window.cycleBg = (e) => {
+    if (['BUTTON', 'INPUT', 'I'].includes(e.target.tagName)) return;
+    document.body.className = ""; document.body.style.backgroundColor = "";
+    const c = bgColors[bI];
+    if (c === 'bricks') document.body.classList.add('brick-bg'); else document.body.style.backgroundColor = c;
+    bI = (bI + 1) % bgColors.length;
 };
-window.claimBonus = () => {
-    get(uRef).then(s => {
-        const b = s.val().refBonus || 0;
-        if(b > 0) update(uRef, { balance: s.val().balance + b, refBonus: 0 });
-    });
-};
-setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleString(), 1000);
