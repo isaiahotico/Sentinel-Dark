@@ -3,220 +3,128 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAPERHOUSE INC - Gold Rewards</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PAPERHOUSE INC 🎖</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // Your Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTc7c",
-            authDomain: "paper-house-inc.firebaseapp.com",
-            projectId: "paper-house-inc",
-            storageBucket: "paper-house-inc.firebasestorage.app",
-            messagingSenderId: "658389836376",
-            appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        window.db = db; // Global access
-    </script>
-
     <!-- Monetag SDK -->
     <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
     
     <style>
-        .gold-gradient {
-            background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-        }
-        .gold-text {
-            background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(191, 149, 63, 0.3);
-        }
-        body { background-color: #0a0a0a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;700&display=swap');
+        
+        body { background-color: #050505; color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .gold-border { border: 2px solid; border-image: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c) 1; }
+        .gold-text { background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Cinzel', serif; }
+        .gold-bg { background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 45%, #b38728 100%); color: #000; font-weight: 800; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(191, 149, 63, 0.2); }
+        .view { display: none; padding-bottom: 80px; }
+        .view.active { display: block; }
+        .cooldown-active { filter: grayscale(1); pointer-events: none; opacity: 0.5; }
     </style>
 </head>
-<body class="p-4">
+<body class="antialiased">
 
     <!-- Loading Screen -->
-    <div id="loader" class="fixed inset-0 z-50 flex items-center justify-center bg-black">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-yellow-500"></div>
-    </div>
-
-    <!-- App Header -->
-    <header class="text-center mb-6 pt-4">
-        <h1 class="text-3xl font-black gold-text italic italic tracking-tighter">🎖 PAPERHOUSE INC 🎖</h1>
-        <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest">Premium Ad Rewards</p>
-    </header>
-
-    <!-- Balance Card -->
-
-    <div class="gold-gradient p-[1px] rounded-2xl mb-6 shadow-[0_0_20px_rgba(191,149,63,0.3)]">
-        <div class="bg-black rounded-2xl p-6 text-center">
-            <p class="text-gray-400 text-sm">Available Balance</p>
-            <h2 class="text-5xl font-bold mt-2">₱<span id="userBalance">0.00</span></h2>
+    <div id="loading" class="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center">
+        <h1 class="gold-text text-3xl mb-4 animate-pulse">PAPERHOUSE INC</h1>
+        <div class="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div class="bg-yellow-500 h-full w-1/2 animate-[load_2s_infinite]"></div>
         </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="grid grid-cols-1 gap-4 mb-8">
-        <button onclick="watchAd()" class="gold-gradient text-black font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
-            <span>📺</span> WATCH AD & EARN ₱0.10
-        </button>
+    <!-- Top Bar -->
+    <nav class="sticky top-0 z-40 glass p-4 flex justify-between items-center border-b border-yellow-900/30">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full gold-bg flex items-center justify-center text-xs" id="userInitial">P</div>
+            <span id="tgUsername" class="text-sm font-bold gold-text">Guest_User</span>
+        </div>
+        <div class="text-right">
+            <p class="text-[10px] uppercase text-gray-500">Balance</p>
+
+            <p class="font-black text-yellow-500">₱<span id="balance">0.00</span></p>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="p-4">
         
-        <button onclick="showSection('withdraw')" class="glass-card text-yellow-500 font-bold py-4 rounded-xl flex items-center justify-center gap-2 border border-yellow-700/50">
-            <span>💸</span> WITHDRAW GCASH
+        <!-- HOME / EARN VIEW -->
+        <section id="home" class="view active">
+            <div class="gold-border p-6 text-center mb-6 bg-black/50">
+                <h2 class="text-gray-400 text-xs tracking-[0.2em] mb-2">MONETAG EXCLUSIVE</h2>
+                <div class="flex flex-col gap-4">
+                    <button id="btnReward" onclick="handleAd('reward')" class="gold-bg py-4 rounded-lg shadow-[0_0_15px_rgba(191,149,63,0.4)] active:scale-95 transition-all">
+                        WATCH REWARDED AD (₱0.01)
+                    </button>
+                    <button id="btnPop" onclick="handleAd('pop')" class="border border-yellow-500 text-yellow-500 py-4 rounded-lg font-bold">
+                        OPEN POPUP AD (₱0.01)
+                    </button>
+                    <p id="cooldownMsg" class="text-red-500 text-[10px] hidden">Cooldown active: Please wait 1 minute</p>
+                </div>
+            </div>
+
+            <div class="glass rounded-xl p-4">
+                <h3 class="text-xs font-bold text-gray-500 mb-4 border-b border-white/10 pb-2">GLOBAL REAL-TIME CHAT</h3>
+                <div id="chatBox" class="h-48 overflow-y-auto space-y-2 mb-4 text-sm px-2"></div>
+                <div class="flex gap-2">
+                    <input id="chatInput" type="text" placeholder="Type message..." class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-yellow-500">
+                    <button onclick="sendChat()" class="gold-bg px-4 rounded-lg text-xs">SEND</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- LEADERBOARD VIEW -->
+        <section id="leaderboard" class="view">
+            <h2 class="gold-text text-2xl font-bold mb-6 text-center italic">Top Earners</h2>
+            <div id="leaderboardList" class="space-y-3">
+                <!-- Live Users -->
+            </div>
+        </section>
+
+        <!-- WITHDRAW VIEW -->
+        <section id="withdraw" class="view">
+            <div class="glass p-6 rounded-2xl mb-6">
+                <h2 class="text-xl font-bold gold-text mb-4 italic">Withdraw GCash</h2>
+                <p class="text-[10px] text-gray-400 mb-4">MINIMUM: ₱1.00 | AUTO-FEE: ₱0.00</p>
+                <input id="gcashNum" type="number" placeholder="GCash Number (09...)" class="w-full bg-black/50 border border-yellow-900/50 p-4 rounded-xl mb-4 outline-none">
+                <input id="withAmount" type="number" placeholder="Amount (Min 1)" class="w-full bg-black/50 border border-yellow-900/50 p-4 rounded-xl mb-6 outline-none">
+                <button onclick="requestWithdraw()" class="w-full gold-bg py-4 rounded-xl">SUBMIT GCASH REQUEST</button>
+            </div>
+            
+            <h3 class="text-xs font-bold text-gray-500 mb-3 ml-2">MY WITHDRAWAL HISTORY</h3>
+            <div id="myHistory" class="space-y-2"></div>
+        </section>
+
+        <!-- ADMIN VIEW -->
+        <section id="admin" class="view">
+            <h2 class="text-2xl font-bold gold-text mb-4">Owner Dashboard</h2>
+            <div id="adminList" class="space-y-4">
+                <!-- Admin requests -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Navigation -->
+    <div class="fixed bottom-0 left-0 right-0 glass border-t border-yellow-900/30 flex justify-around p-3 z-50">
+        <button onclick="switchTab('home')" class="flex flex-col items-center">
+            <span class="text-xl">💰</span><span class="text-[10px] text-gra
+
+y-400">Earn</span>
+        </button>
+        <button onclick="switchTab('leaderboard')" class="flex flex-col items-center">
+            <span class="text-xl">🏆</span><span class="text-[10px] text-gray-400">Top</span>
+        </button>
+        <button onclick="switchTab('withdraw')" class="flex flex-col items-center">
+            <span class="text-xl">💳</span><span class="text-[10px] text-gray-400">Cash</span>
+        </button>
+        <button onclick="promptAdmin()" class="flex flex-col items-center">
+            <span class="text-xl">👑</span><span class="text-[10px] text-gray-400">Admin</span>
         </button>
     </div>
 
-    <!-- Navigation Views -->
-    <div id="view-home" class="view">
-        <div class="glass-card p-4 rounded-xl text-sm">
-            <h3 class="font-bold mb-2 text-yellow-500 uppercase">Leaderboard News</h3>
-            <p class="text-gray-400 italic">User 0917*** rewarded ₱50.00 successfully!</p>
-        </div>
-    </div>
-
-    <!-- Withdraw View -->
-    <div id="view-withdraw" class="view hidden">
-        <div class="glass-card p-6 rounded-2xl">
-            <h3 class="text-xl font-bold mb-4 gold-text">GCash Withdrawal</h3>
-            <p class="text-xs text-gray-400 mb-4">Min: ₱1.00 | Fee: ₱0.00</p>
-            <input id="gcashNumber" type="number" placeholder="GCash Number (09...)" class="w-full bg-black border border-yellow-600/30 p-3 rounded-lg mb-4 text-white outline-none focus:border-yellow-400">
-            <input id="withdrawAmount" type="number" placeholder="Amount" class="w-full bg-black border border-yellow-600/30 p-3 rounded-lg mb-4 text-white outline-none focus:border-yellow-400">
-            <button onclick="processWithdraw()" class="w-full gold-gradient text-black font-bold py-3 rounded-lg">SUBMIT REQUEST</button>
-            <button onclick="showSection('home')" class="w-full mt-4 text-gray-500 text-sm">Cancel</button>
-        </div>
-    </div>
-
-    <!-- Admin View -->
-    <div id="view-admin" class="view hidden">
-        <div class="glass-card p-4 rounded-xl">
-            <h3 class="text-xl font-bold mb-4 gold-text">Pending Payouts</h3>
-            <div id="payoutList" class="space-y-3">
-                <!-- Data from Firebase -->
-            </div>
-            <button onclick="showSection('home')" class="w-full mt-6 text-gray-500">Exit Admin</button>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="mt-12 text-center">
-        <button onclick="promptAdmin()" class="text-[10px] text-gray-800 uppercase tracking-tighter">Admin Portal</button>
-    </footer>
-
-    <script type="module">
-        import { doc, getDoc, setDoc, updateDoc, increment, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // Logic for User Tracking (Using local storage for unique ID if not in Telegram)
-        let userId = localStorage.getItem('ph_user_id') || 'user_' + Math.floor(Math.random() * 1000000);
-        localStorage.setItem('ph_user_id', userId);
-
-        const balanceEl = document.getElementById('userBalance');
-
-        // Sync Balance
-        async function syncData() {
-            const userRef = doc(window.db, "users", userId);
-            const userSnap = await getDoc(userRef);
-
-            if (userSnap.exists()) {
-                balanceEl.innerText = userSnap.data().balance.toFixed(2);
-            } else {await setDoc(userRef, { balance: 0, totalEarned: 0 });
-                balanceEl.innerText = "0.00";
-            }
-            document.getElementById('loader').style.display = 'none';
-        }
-
-        // Global functions for Ads
-        window.watchAd = function() {
-            if (typeof show_10276123 === 'function') {
-                show_10276123().then(async () => {
-                    const userRef = doc(window.db, "users", userId);
-                    await updateDoc(userRef, {
-                        balance: increment(0.10),
-                        totalEarned: increment(0.10)
-                    });
-                    alert('Congrats! You earned ₱0.10');
-                    syncData();
-                }).catch(e => {
-                    alert('Ad failed to load. Try again.');
-                });
-            } else {
-                alert('Ad SDK loading...');
-            }
-        };
-
-        window.processWithdraw = async function() {
-            const num = document.getElementById('gcashNumber').value;
-            const amt = parseFloat(document.getElementById('withdrawAmount').value);
-            const currentBal = parseFloat(balanceEl.innerText);
-
-            if (num.length < 10 || amt < 1) {
-                alert("Min ₱1 and valid GCash number required!");
-                return;
-            }
-
-            if (amt > currentBal) {
-                alert("Insufficient balance!");
-                return;
-            }
-
-            // Deduct and Save Request
-            const userRef = doc(window.db, "users", userId);
-            await updateDoc(userRef, { balance: increment(-amt) });
-            
-            await addDoc(collection(window.db, "withdrawals"), {
-                userId: userId,
-                number: num,
-                amount: amt,
-                status: "pending",
-                timestamp: new Date()
-            });
-
-            alert("Withdrawal submitted! Wait for 24h.");
-            showSection('home');
-            syncData();
-        };
-
-        window.showSection = function(id) {
-            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-            document.getElementById('view-' + id).classList.remove('hidden');
-        };
-
-        window.promptAdmin = async function() {
-            const pass = prompt("Enter Admin Password:");
-            if (pass === 'Propetas6 "🎖PAPERHOUSE INC🎖"') {
-                showSection('admin');
-                const q = collection(window.db, "withdrawals");
-                const querySnapshot = await getDocs(q);
-                const list = document.getElementById('payoutList');
-                list.innerHTML = "";
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    list.innerHTML += `
-                        <div class="border-b border-yellow-900/30 pb-2 text-sm">
-                            <p>💰 ₱${data.amount} -> ${data.number}</p>
-                            <p class="text-[10px] text-gray-500">${data.userId}</p>
-                        </div>
-                    `;
-                });
-            } else {
-                alert("Unauthorized");
-            }
-        };
-
-        // Initialize
-        window.onload = syncData;
-    </script>
+    <!-- Scripts -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
