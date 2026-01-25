@@ -16,105 +16,80 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Telegram Context
+// User Context
 const tg = window.Telegram.WebApp;
-const user = tg.initDataUnsafe?.user || { id: "DEV", username: "Dev_User" };
+const user = tg.initDataUnsafe?.user || { id: "GUEST", username: "anonymous" };
 const username = user.username || `User_${user.id}`;
 const uid = user.id.toString();
 
-document.getElementById('tg-username').innerText = "@" + username;
+document.getElementById('tg-user').innerText = username;
 document.getElementById('my-code').innerText = username;
 
-const userRef = ref(db, 'users/' + uid);
+const uRef = ref(db, 'users/' + uid);
 
-// --- State Management ---
-onValue(userRef, snap => {
+// Init User
+onValue(uRef, snap => {
     const d = snap.val();
     if (!d) {
-        set(userRef, { username, balance: 0, totalAds: 0, referralCount: 0, claimableBonus: 0, referredBy: "", lastVip: 0, lastPremium: 0, lastChatAd: 0 });
+        set(uRef, { username, balance: 0, totalAds: 0, referralCount: 0, claimableBonus: 0, referredBy: "", lastVip: 0, lastPrem: 0, lastChat: 0 });
         return;
     }
-    document.getElementById('balance').innerText = d.balance.toFixed(4);
-    document.getElementById('ref-count').innerText = d.referralCount || 0;
-    document.getElementById('ref-bonus').innerText = (d.claimableBonus || 0).toFixed(4);
+    document.getElementById('bal').innerText = d.balance.toFixed(4);
+    document.getElementById('r-count').innerText = d.referralCount || 0;
+    document.getElementById('r-bonus').innerText = (d.claimableBonus || 0).toFixed(4);
     
-    // Timer Updates
-    const now = Date.now();
-    updateTimer('vip-btn', 'vip-timer', d.lastVip, 10);
-    updateTimer('premium-btn', 'premium-timer', d.lastPremium, 5);
+    // Cooldown logic
+    updateCD('vip-btn', 'vip-wait', d.lastVip, 10);
+    updateCD('prem-btn', 'prem-wait', d.lastPrem, 5);
 });
 
-function updateTimer(btnId, timerId, lastTime, mins) {
-    const diff = Math.max(0, Math.ceil((mins * 60 * 1000 - (Date.now() - (lastTime || 0))) / 1000));
-    document.getElementById(btnId).disabled = diff > 0;
-    document.getElementById(timerId).innerText = diff > 0 ? `(${diff}s)` : "READY";
+function updateCD(bid, tid, last, mins) {
+    const diff = Math.max(0, Math.ceil((mins * 60 * 1000 - (Date.now() - (last || 0))) / 1000));
+    const btn = document.getElementById(bid);
+    btn.disabled = diff > 0;
+    document.getElementById(tid).innerText = diff > 0 ? `(${diff}s)` : "";
 }
 
-// Presence
-const presenceRef = ref(db, 'presence/' + uid);
-onValue(ref(db, '.info/connected'), (snap) => {
-    if (snap.val()) {
-        onDisconnect(presenceRef).remove();
-        set(presenceRef, { username, lastActive: serverTimestamp() });
-    }
+// Presence & Online List
+const pRef = ref(db, 'presence/' + uid);
+onValue(ref(db, '.info/connected'), (s) => {
+    if (s.val()) { onDisconnect(pRef).remove(); set(pRef, { username, active: true }); }
 });
 
-onValue(ref(db, 'presence'), snap => {
-    const list = document.getElementById('online-list');
-    const count = document.getElementById('online-count');
+onValue(ref(db, 'presence'), s => {
+    const list = document.getElementById('on-list');
+    const count = document.getElementById('on-count');
     list.innerHTML = ""; let i = 0;
-    snap.forEach(c => { i++; list.innerHTML += ` @${c.val().username} | `; });
+    s.forEach(child => {
+        i++;
+        list.innerHTML += `<div class="user-chip"><div class="pulse-dot"></div>@${child.val().username}</div>`;
+    });
     count.innerText = i;
 });
 
-// --- Background Logic ---
-const colors = ["pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
-let colorIndex = 0;
-
-window.handleGlobalClick = function(e) {
-    // Prevent background change if clicking buttons/inputs
-    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'A' || e.target.tagName === 'I') return;
-    
-    const body = document.body;
-    body.className = ""; // Reset
-    const selected = colors[colorIndex];
-    
-    if(selected === 'bricks') {
-        body.classList.add('brick-bg');
-    } else {
-        body.style.backgroundColor = selected;
-    }
-    
-    colorIndex = (colorIndex + 1) % colors.length;
-};
-
-// --- Ads Logic ---
-window.triggerAd = async function(type) {
+// Ad Handlers
+window.runAd = async function(type) {
     let reward = type === 'vip' ? 0.0112 : 0.0162;
-    let field = type === 'vip' ? 'lastVip' : 'lastPremium';
-
-    if(type === 'premium') {
-        await show_10337795(); // 1
-        await show_10337795(); // 2
-    }
+    let field = type === 'vip' ? 'lastVip' : 'lastPrem';
+    
+    if (type === 'prem') { await show_10337795(); await show_10337795(); }
     
     show_10337795('pop').then(() => {
-        processReward(reward, field);
-    }).catch(() => alert("Ad error."));
+        addReward(reward, field);
+    });
 };
 
-function processReward(amt, field) {
-    get(userRef).then(snap => {
-        const d = snap.val();
-        const upd = { balance: d.balance + amt, totalAds: (d.totalAds || 0) + 1 };
-        upd[field] = Date.now();
-        update(userRef, upd);
-        
+function addReward(amt, f) {
+    get(uRef).then(s => {
+        const d = s.val();
+        const up = { balance: d.balance + amt, totalAds: (d.totalAds || 0) + 1 };
+        up[f] = Date.now();
+        update(uRef, up);
         if (d.referredBy) {
             get(ref(db, 'users')).then(all => {
                 all.forEach(u => {
-                    if(u.val().username === d.referredBy) {
-                        update(ref(db, 'users/' + u.key), { claimableBonus: (u.val().claimableBonus || 0) + (amt * 0.08) });
+                    if (u.val().username === d.referredBy) {
+                        update(ref(db, 'users/'+u.key), { claimableBonus: (u.val().claimableBonus||0) + (amt*0.08) });
                     }
                 });
             });
@@ -123,146 +98,127 @@ function processReward(amt, field) {
     });
 }
 
-// --- Chat with High CPM Ads ---
-window.sendChatAd = function() {
-    const msg = document.getElementById('chat-msg').value;
-    if(!msg) return;
+// Chat System
+window.sendChatMsg = function() {
+    const msg = document.getElementById('chat-in').value;
+    if (!msg) return;
 
-    get(userRef).then(async snap => {
-        const d = snap.val();
+    get(uRef).then(async s => {
+        const d = s.val();
         const now = Date.now();
-        if(now - (d.lastChatAd || 0) > (5 * 60 * 1000)) {
-            // High CPM 3-Ad Combo
-            await show_10337795();
-            await show_10337795();
+        if (now - (d.lastChat || 0) > 300000) { // 5 min
+            await show_10337795(); await show_10337795();
             show_10337795('pop').then(() => {
-                processReward(0.0162, "lastChatAd");
-                broadcastMsg(msg);
+                addReward(0.0162, "lastChat");
+                finishChat(msg);
             });
         } else {
-            broadcastMsg(msg);
+            finishChat(msg);
         }
     });
 };
 
-function broadcastMsg(m) {
-    push(ref(db, 'chat'), { username, text: m, timestamp: serverTimestamp() });
-    document.getElementById('chat-msg').value = "";
+function finishChat(txt) {
+    push(ref(db, 'chat'), { uid, username, txt, timestamp: serverTimestamp() });
+    document.getElementById('chat-in').value = "";
 }
 
-onValue(query(ref(db, 'chat'), limitToLast(15)), snap => {
+onValue(query(ref(db, 'chat'), limitToLast(20)), s => {
     const box = document.getElementById('chat-messages'); box.innerHTML = "";
-    snap.forEach(c => { box.innerHTML += `<div><b class="gold">@${c.val().username}:</b> ${c.val().text}</div>`; });
+    s.forEach(c => {
+        const m = c.val();
+        const side = m.uid === uid ? 'msg-self' : 'msg-other';
+        box.innerHTML += `<div class="msg-bubble ${side}"><span class="msg-user">@${m.username}</span>${m.txt}</div>`;
+    });
     box.scrollTop = box.scrollHeight;
 });
 
-// --- Withdrawal & Referrals ---
-window.applyReferral = function() {
-    const code = document.getElementById('refer-input').value.trim();
-    if(code === username) return alert("Self-referral disabled.");
-    get(userRef).then(snap => {
-        if(snap.val().referredBy) return alert("Referrer already set.");
-        get(ref(db, 'users')).then(all => {
-            all.forEach(u => {
-                if(u.val().username === code) {
-                    update(userRef, { referredBy: code });
-                    update(ref(db, 'users/' + u.key), { referralCount: (u.val().referralCount || 0) + 1 });
-                    alert("Referrer Linked!");
-                }
-            });
-        });
+// Bg Cycle
+const bgColors = ["#0b0b0b", "pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
+let bgIdx = 0;
+window.cycleBg = (e) => {
+    if (['BUTTON', 'INPUT', 'I', 'A'].includes(e.target.tagName)) return;
+    const body = document.body;
+    body.className = ""; body.style.backgroundColor = "";
+    const current = bgColors[bgIdx];
+    if (current === 'bricks') body.classList.add('brick-bg');
+    else body.style.backgroundColor = current;
+    bgIdx = (bgIdx + 1) % bgColors.length;
+};
+
+// Admin & Withdrawal
+window.requestPayout = () => {
+    const n = document.getElementById('gc-name').value;
+    const num = document.getElementById('gc-num').value;
+    if (!n || !num) return alert("Missing info");
+    get(uRef).then(s => {
+        if (s.val().balance < 0.02) return alert("Min ₱0.02");
+        push(ref(db, 'withdrawals'), { uid, username, name: n, gcash: num, amt: s.val().balance, status: 'pending', timestamp: serverTimestamp() });
+        update(uRef, { balance: 0 });
+        alert("Success!");
     });
 };
 
-window.claimReferralBonus = function() {
-    get(userRef).then(snap => {
-        const b = snap.val().claimableBonus || 0;
-        if(b <= 0) return alert("No bonus.");
-        update(userRef, { balance: snap.val().balance + b, claimableBonus: 0 });
-        showPop(b, "Bonus Credited!");
-    });
-};
-
-window.submitWithdraw = function() {
-    const n = document.getElementById('gcash-name').value;
-    const g = document.getElementById('gcash-num').value;
-    if(!n || !g) return alert("Fill all fields.");
-    get(userRef).then(snap => {
-        const b = snap.val().balance;
-        if(b < 0.02) return alert("Min 0.02");
-        push(ref(db, 'withdrawals'), { uid, username, name: n, gcash: g, amount: b, status: 'pending', timestamp: serverTimestamp() });
-        update(userRef, { balance: 0 });
-        alert("Success! Check History.");
-    });
-};
-
-// History Listeners
-onValue(ref(db, 'withdrawals'), snap => {
-    const list = document.getElementById('history-list'); list.innerHTML = "";
-    snap.forEach(c => {
+onValue(ref(db, 'withdrawals'), s => {
+    const hist = document.getElementById('pay-hist'); hist.innerHTML = "";
+    s.forEach(c => {
         const w = c.val();
-        if(w.uid === uid) {
-            const date = new Date(w.timestamp).toLocaleString();
-            list.innerHTML += `<div class="history-item">
-                <div><b>₱${w.amount.toFixed(4)}</b><br>${date}</div>
-                <div class="status-${w.status}">${w.status.toUpperCase()}</div>
-            </div>`;
+        if (w.uid === uid) {
+            hist.innerHTML += `<div class="glass-card" style="font-size:11px;">₱${w.amt.toFixed(4)} | ${w.status.toUpperCase()} | ${new Date(w.timestamp).toLocaleDateString()}</div>`;
         }
     });
 });
 
-// --- Admin ---
-window.loginAdmin = function() {
-    if(document.getElementById('admin-pass').value === "Propetas12") {
-        document.getElementById('admin-login').style.display = 'none';
-        document.getElementById('admin-panel').style.display = 'block';
+window.authAdmin = () => {
+    if (document.getElementById('adm-pass').value === "Propetas12") {
+        document.getElementById('admin-auth').style.display = 'none';
+        document.getElementById('admin-content').style.display = 'block';
         loadAdmin();
     }
 };
 
 function loadAdmin() {
-    onValue(ref(db, 'withdrawals'), snap => {
-        const reqs = document.getElementById('admin-requests');
-        const hist = document.getElementById('admin-history');
-        const totalDisp = document.getElementById('admin-total-out');
-        reqs.innerHTML = ""; hist.innerHTML = "";
-        let totalSum = 0;
-
-        snap.forEach(c => {
+    onValue(ref(db, 'withdrawals'), s => {
+        const reqs = document.getElementById('adm-reqs');
+        const hist = document.getElementById('adm-hist');
+        const totalDisp = document.getElementById('adm-total');
+        reqs.innerHTML = ""; hist.innerHTML = ""; let sum = 0;
+        s.forEach(c => {
             const w = c.val();
-            const date = new Date(w.timestamp).toLocaleString();
-            if(w.status === 'pending') {
-                reqs.innerHTML += `<div class="card" style="font-size:11px;">
-                    ${w.username} | ₱${w.amount.toFixed(4)}<br>G: ${w.gcash} (${w.name})<br>
-                    <button onclick="updateW('${c.key}','approve')" style="background:#00ff00; border:none; padding:5px; border-radius:5px;">Approve</button>
-                    <button onclick="updateW('${c.key}','denied')" style="background:#ff0000; border:none; padding:5px; border-radius:5px; color:white;">Deny</button>
-                </div>`;
-            } else if(w.status === 'approve') {
-                totalSum += w.amount;
-                hist.innerHTML += `<div class="history-item">
-                    <span>${w.username}<br>₱${w.amount.toFixed(2)}</span>
-                    <span>${w.gcash}<br>${date}</span>
-                </div>`;
+            if (w.status === 'pending') {
+                reqs.innerHTML += `<div class="glass-card">@${w.username} - ₱${w.amt.toFixed(2)}<br>${w.gcash}<br>
+                    <button onclick="admUpd('${c.key}','approve')">Approve</button> <button onclick="admUpd('${c.key}','denied')">Deny</button></div>`;
+            } else if (w.status === 'approve') {
+                sum += w.amt;
+                hist.innerHTML += `<div style="font-size:10px;">${w.username} - ₱${w.amt} - ${w.gcash}</div>`;
             }
         });
-        totalDisp.innerText = totalSum.toFixed(2);
+        totalDisp.innerText = sum.toFixed(2);
     });
 }
-window.updateW = (k, s) => update(ref(db, `withdrawals/${k}`), {status: s});
+window.admUpd = (k, s) => update(ref(db, `withdrawals/${k}`), { status: s });
 
-// --- UI Helpers ---
-function showPop(a, m) {
-    const p = document.getElementById('reward-popup');
-    document.getElementById('reward-msg').innerText = `+₱${a.toFixed(4)}`;
-    if(m) document.getElementById('reward-sub').innerText = m;
-    p.classList.add('show');
-    setTimeout(() => p.classList.remove('show'), 2500);
-}
-
-window.showTab = (id, el) => {
+// Helpers
+window.tab = (id, el) => {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.nav i').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.nav-bar i').forEach(i => i.classList.remove('active'));
     document.getElementById(id).classList.add('active'); el.classList.add('active');
 };
 
-setInterval(() => { document.getElementById('current-time').innerText = new Date().toLocaleString(); }, 1000);
+window.claimBonus = () => {
+    get(uRef).then(s => {
+        const b = s.val().claimableBonus || 0;
+        if (b <= 0) return alert("Nothing to claim");
+        update(uRef, { balance: s.val().balance + b, claimableBonus: 0 });
+        showPop(b);
+    });
+};
+
+function showPop(a) {
+    const p = document.getElementById('reward-pop');
+    document.getElementById('pop-amt').innerText = `+₱${a.toFixed(4)}`;
+    p.classList.add('show');
+    setTimeout(() => p.classList.remove('show'), 2000);
+}
+
+setInterval(() => { document.getElementById('footer-time').innerText = new Date().toLocaleString(); }, 1000);
