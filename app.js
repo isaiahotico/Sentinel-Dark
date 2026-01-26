@@ -1,5 +1,4 @@
 
-// Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyBwpa8mA83JAv2A2Dj0rh5VHwodyv5N3dg",
     authDomain: "freegcash-ads.firebaseapp.com",
@@ -7,184 +6,268 @@ const firebaseConfig = {
     projectId: "freegcash-ads",
     storageBucket: "freegcash-ads.firebasestorage.app",
     messagingSenderId: "608086825364",
-    appId: "1:608086825364:web:3a8e628d231b52c6171781",
-    measurementId: "G-Z64B87ELGP"
+    appId: "1:608086825364:web:3a8e628d231b52c6171781"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const auth = firebase.auth();
+const tg = window.Telegram.WebApp;
+tg.expand();
 
-let currentUser = null;
-let userData = { balance: 0, totalEarned: 0 };
+let user = tg.initDataUnsafe?.user || { id: "12345", username: "Local_Dev", first_name: "Developer" };
+let uid = user.id.toString();
+let myData = null;
 
-// Auto-Login (Anonymous for Telegram)
-auth.signInAnonymously().catch(e => console.error(e));
-
-auth.onAuthStateChanged(user => {
-    if (user) {
-        currentUser = user;
-        setupUser();
-        initApp();
-    }
+// Initialization
+firebase.auth().signInAnonymously().then(() => {
+    document.getElementById('tg-username').innerText = `@${user.username || 'User'}`;
+    if(user.photo_url) document.getElementById('user-photo').src = user.photo_url;
+    
+    initUser();
+    updatePresence();
+    syncHistory();
 });
 
-function setupUser() {
-    const userRef = db.ref('users/' + currentUser.uid);
-    userRef.on('value', (snapshot) => {
-        if (snapshot.exists()) {
-            userData = snapshot.val();
-        } else {
-            userData = {
+function initUser() {
+    db.ref('users/' + uid).on('value', (snap) => {
+        myData = snap.val();
+        if (!myData) {
+            myData = {
+                username: user.username || "Anonymous",
+                fullName: `${user.first_name || ''} ${user.last_name || ''}`,
                 balance: 0,
                 totalEarned: 0,
-                username: "User_" + currentUser.uid.substr(0, 5)
+                refEarnings: 0,
+                adsTotal: 0,
+                adsDaily: 0,
+                referredBy: "",
+                lastPremium: 0,
+                lastSurprise: 0,
+                lastChat: 0
             };
-            userRef.set(userData);
+            db.ref('users/' + uid).set(myData);
         }
-        updateUI();
+        document.getElementById('bal').innerText = myData.balance.toFixed(4);
+        document.getElementById('ref-earn').innerText = myData.refEarnings.toFixed(4);
+        updateTimers();
     });
-}
-
-function updateUI() {
-    document.getElementById('user-balance').innerText = userData.balance.toFixed(2);
-    document.getElementById('user-total').innerText = userData.totalEarned.toFixed(2);
 }
 
 // ADS LOGIC
-function watchInterstitial() {
-    show_10276123().then(() => {
-        rewardUser(0.01);
-        alert("Success! ₱ 0.01 added.");
-    }).catch(e => alert("Ad failed to load. Try again."));
+async function watchPremiumAd() {
+    // 2 High CPM Interstitials combined
+    try {
+        await show_10276123(); // First ad
+        await show_10276123(); // Second ad
+        rewardUser(0.0100, 'lastPremium', 1);
+        alert("Premium Reward Credited!");
+    } catch(e) { alert("Ad failed. Try again."); }
 }
 
-function watchPopup() {
+async function watchSurpriseAd() {
     show_10276123('pop').then(() => {
-        rewardUser(0.005); // Smaller reward for popups
+        rewardUser(0.0102, 'lastSurprise', 1);
     });
 }
 
-// In-App Ad auto-trigger
-show_10276123({
-    type: 'inApp',
-    inAppSettings: { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false }
-});
+async function sendChatMessage() {
+    const now = Date.now();
+    const cooldown = 5 * 60 * 1000;
+    if (now - (myData.lastChat || 0) < cooldown) return alert("Chat cooldown active!");
 
-function rewardUser(amount) {
-    const userRef = db.ref('users/' + currentUser.uid);
-    userRef.transaction((currentData) => {
-        if (currentData) {
-            currentData.balance = (currentData.balance || 0) + amount;
-            currentData.totalEarned = (currentData.totalEarned || 0) + amount;
-        }
-        return currentData;
-    });
-}
-
-// WITHDRAWAL
-function requestWithdrawal() {
-    const gcash = document.getElementById('gcash-num').value;
-    if (gcash.length < 10) return alert("Enter valid GCash number");
-    if (userData.balance < 0.02) return alert("Minimum withdrawal is ₱ 0.02");
-
-    const amount = userData.balance;
-    const withdrawRef = db.ref('withdrawals').push();
-    
-    withdrawRef.set({
-        uid: currentUser.uid,
-        gcash: gcash,
-        amount: amount,
-        status: 'pending',
-        timestamp: Date.now()
-    }).then(() => {
-        db.ref('users/' + currentUser.uid + '/balance').set(0);
-        alert("Withdrawal Requested! Processing takes 24h.");
-    });
-}
-
-// NAVIGATION
-function showSec(secId) {
-    document.querySelectorAll('section').forEach(s => s.classList.add('hidden-section'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('sec-' + secId).classList.remove('hidden-section');
-    document.getElementById('btn-' + secId).classList.add('active');
-    
-    if(secId === 'chat') loadChat();
-    if(secId === 'leaders') loadLeaders();
-}
-
-// CHAT SYSTEM
-function sendMessage() {
-    const msg = document.getElementById('chat-input').value;
+    const msg = document.getElementById('chat-msg').value;
     if (!msg) return;
-    db.ref('chat').push({
-        user: userData.username,
-        text: msg,
-        time: Date.now()
-    });
-    document.getElementById('chat-input').value = '';
+
+    // Trigger 3 Ads Combined
+    try {
+        await show_10276123();
+        await show_10276123();
+        await show_10276123();
+        
+        db.ref('chat').push({ username: myData.username, text: msg, time: now });
+        rewardUser(0.0201, 'lastChat', 3);
+        document.getElementById('chat-msg').value = '';
+    } catch(e) { alert("Please watch ads to chat!"); }
 }
 
-function loadChat() {
-    db.ref('chat').limitToLast(20).on('value', (snap) => {
-        const chatBox = document.getElementById('chat-box');
-        chatBox.innerHTML = '';
-        snap.forEach(child => {
-            const data = child.val();
-            chatBox.innerHTML += `<div><span class="text-yellow-500 font-bold">${data.user}:</span> ${data.text}</div>`;
+function rewardUser(amt, cooldownKey, adsCount) {
+    const update = {};
+    update['balance'] = (myData.balance || 0) + amt;
+    update['totalEarned'] = (myData.totalEarned || 0) + amt;
+    update['adsTotal'] = (myData.adsTotal || 0) + adsCount;
+    update['adsDaily'] = (myData.adsDaily || 0) + adsCount;
+    update[cooldownKey] = Date.now();
+    
+    db.ref('users/' + uid).update(update);
+
+    // 8% Referral Logic
+    if (myData.referredBy) {
+        const refReward = amt * 0.08;
+        db.ref('users/' + myData.referredBy).transaction((u) => {
+            if (u) {
+                u.balance = (u.balance || 0) + refReward;
+                u.refEarnings = (u.refEarnings || 0) + refReward;
+            }
+            return u;
         });
-        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+}
+
+// NAVIGATION & TAB SYSTEMS
+function nav(id) {
+    document.querySelectorAll('section').forEach(s => s.classList.add('hidden-sec'));
+    document.getElementById('sec-' + id).classList.remove('hidden-sec');
+    if(id === 'social') loadSocial();
+    if(id === 'chat') loadChat();
+}
+
+function submitReferral() {
+    const code = document.getElementById('ref-input').value.replace('@', '');
+    if (code === myData.username) return alert("Can't refer yourself!");
+    
+    db.ref('users').orderByChild('username').equalTo(code).once('value', snap => {
+        if (snap.exists()) {
+            const refUid = Object.keys(snap.val())[0];
+            db.ref('users/' + uid).update({ referredBy: refUid });
+            alert("Referral confirmed! You are now earning for " + code);
+        } else {
+            alert("User not found!");
+        }
     });
 }
 
-// LEADERBOARD
-function loadLeaders() {
-    db.ref('users').orderByChild('totalEarned').limitToLast(10).on('value', (snap) => {
+function withdraw() {
+    const num = document.getElementById('gcash-num').value;
+    if (num.length < 10) return alert("Enter valid GCash");
+    if (myData.balance < 0.02) return alert("Min 0.02 required");
+
+    const request = {
+        uid: uid,
+        username: myData.username,
+        amount: myData.balance,
+        gcash: num,
+        status: 'pending',
+        time: Date.now()
+    };
+
+    db.ref('withdrawals').push(request);
+    db.ref('users/' + uid).update({ balance: 0 });
+    alert("Withdrawal submitted!");
+}
+
+function syncHistory() {
+    db.ref('withdrawals').orderByChild('uid').equalTo(uid).on('value', snap => {
+        const tbody = document.getElementById('withdraw-history');
+        tbody.innerHTML = '';
+        snap.forEach(child => {
+            const w = child.val();
+            tbody.innerHTML += `<tr><td>${w.amount.toFixed(2)}</td><td>${w.gcash}</td><td class="${w.status=='pending'?'text-yellow-500':'text-green-500'}">${w.status}</td></tr>`;
+        });
+    });
+}
+
+// SOCIAL FEATURES
+function loadSocial() {
+    // Leaderboard
+    db.ref('users').orderByChild('totalEarned').limitToLast(10).on('value', snap => {
         const list = document.getElementById('leader-list');
         list.innerHTML = '';
-        let rank = 1;
-        let arr = [];
-        snap.forEach(c => { arr.push(c.val()); });
-        arr.reverse().forEach(user => {
-            list.innerHTML += `
-                <div class="flex justify-between items-center border-b border-slate-700 pb-2">
-                    <span>${rank++}. ${user.username}</span>
-                    <span class="text-green-400 font-bold">₱ ${user.totalEarned.toFixed(2)}</span>
-                </div>`;
+        snap.forEach(child => {
+            const u = child.val();
+            list.innerHTML += `<div class="flex justify-between p-2 bg-slate-800 rounded-lg text-xs" onclick="showUserStats('${child.key}')">
+                <span>@${u.username}</span><span class="text-yellow-500 font-bold">₱${u.totalEarned.toFixed(2)}</span>
+            </div>`;
+        });
+    });
+
+    // Online Users
+    db.ref('presence').limitToLast(20).on('value', snap => {
+        const list = document.getElementById('online-list');
+        list.innerHTML = '';
+        snap.forEach(child => {
+            const u = child.val();
+            list.innerHTML += `<div class="bg-slate-800 p-2 rounded-lg text-[10px] truncate">🟢 ${u.name}</div>`;
         });
     });
 }
 
-// ADMIN PANEL
-function loginAdmin() {
-    const pass = document.getElementById('admin-pass').value;
-    if (pass === "Propetas12") {
-        document.getElementById('admin-login').style.display = 'none';
-        document.getElementById('admin-panel').style.display = 'block';
+function showUserStats(userId = uid) {
+    db.ref('users/' + userId).once('value', snap => {
+        const u = snap.val();
+        document.getElementById('stats-name').innerText = "@" + u.username;
+        document.getElementById('stats-total').innerText = u.adsTotal || 0;
+        document.getElementById('stats-daily').innerText = u.adsDaily || 0;
+        document.getElementById('modal-stats').classList.remove('hidden');
+    });
+}
+
+// ADMIN FUNCTIONS
+function verifyAdmin() {
+    if (document.getElementById('admin-pw').value === "Propetas12") {
+        document.getElementById('admin-auth').classList.add('hidden-sec');
+        document.getElementById('admin-core').classList.remove('hidden-sec');
         loadAdminData();
-    } else {
-        alert("Wrong Password");
     }
 }
 
 function loadAdminData() {
-    db.ref('withdrawals').on('value', (snap) => {
-        const div = document.getElementById('admin-withdrawals');
-        div.innerHTML = '';
+    db.ref('withdrawals').on('value', snap => {
+        const pend = document.getElementById('admin-pending-list');
+        const hist = document.getElementById('admin-history-list');
+        pend.innerHTML = ''; hist.innerHTML = '';
         snap.forEach(child => {
             const w = child.val();
-            if(w.status === 'pending') {
-                div.innerHTML += `
-                <div class="p-3 bg-slate-800 rounded text-xs flex justify-between items-center">
-                    <div>GCash: ${w.gcash}<br>Amount: ₱ ${w.amount.toFixed(2)}</div>
-                    <button onclick="approveWithdrawal('${child.key}')" class="bg-green-600 px-2 py-1 rounded">Paid</button>
-                </div>`;
-            }
+            const html = `<div class="glass p-3 rounded text-[10px]">
+                @${w.username} | ${w.gcash} | <span class="text-green-400 font-bold">₱${w.amount.toFixed(4)}</span><br>
+                ${w.status === 'pending' ? `<button onclick="approve('${child.key}')" class="bg-green-600 mt-2 p-1 rounded">Approve Paid</button>` : 'COMPLETED'}
+            </div>`;
+            if(w.status === 'pending') pend.innerHTML += html;
+            else hist.innerHTML += html;
         });
     });
 }
 
-function approveWithdrawal(key) {
-    db.ref('withdrawals/' + key).update({ status: 'completed' });
+function approve(key) { db.ref('withdrawals/' + key).update({ status: 'paid' }); }
+
+// TIMERS & COOLDOWNS
+function updateTimers() {
+    setInterval(() => {
+        const now = Date.now();
+        updateBtnTimer('premium', now - (myData.lastPremium || 0), 30 * 60 * 1000);
+        updateBtnTimer('surprise', now - (myData.lastSurprise || 0), 3 * 60 * 1000);
+        
+        const chatDiff = 5 * 60 * 1000 - (now - (myData.lastChat || 0));
+        document.getElementById('timer-chat').innerText = chatDiff > 0 ? `Ad Cooldown: ${Math.ceil(chatDiff/1000)}s` : "Ads Ready for Chat";
+    }, 1000);
+}
+
+function updateBtnTimer(id, diff, cooldown) {
+    const el = document.getElementById('timer-' + id);
+    const btn = document.getElementById('btn-' + id);
+    if (diff < cooldown) {
+        const rem = Math.ceil((cooldown - diff) / 1000);
+        el.innerText = `${Math.floor(rem/60)}m ${rem%60}s`;
+        btn.classList.add('cooldown');
+    } else {
+        el.innerText = "READY";
+        btn.classList.remove('cooldown');
+    }
+}
+
+function updatePresence() {
+    const presRef = db.ref('presence/' + uid);
+    presRef.set({ name: user.username || "Guest", time: Date.now() });
+    presRef.onDisconnect().remove();
+}
+
+function loadChat() {
+    db.ref('chat').limitToLast(30).on('value', snap => {
+        const box = document.getElementById('chat-content');
+        box.innerHTML = '';
+        snap.forEach(child => {
+            const c = child.val();
+            box.innerHTML += `<div><span class="text-yellow-500 font-bold">@${c.username}:</span> ${c.text}</div>`;
+        });
+        box.scrollTop = box.scrollHeight;
+    });
 }
