@@ -17,139 +17,152 @@ const db = getDatabase(app);
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-const uid = tg.initDataUnsafe?.user?.id || "temp_" + Math.floor(Math.random()*1000);
-const username = tg.initDataUnsafe?.user?.username || "NoUser_" + uid;
-const refCode = tg.initDataUnsafe?.start_param; // Automatically get ref username from link
+const uid = tg.initDataUnsafe?.user?.id || "dev_" + Math.floor(Math.random() * 999);
+const username = tg.initDataUnsafe?.user?.username || "Guest_" + uid;
+const startParam = tg.initDataUnsafe?.start_param;
 
-let balance = 0;
-let points = 0;
+let currentBal = 0;
+let currentPts = 0;
 
-// Initialize User
-const userRef = ref(db, 'users/' + uid);
-onValue(userRef, (snap) => {
+// Init User & Referral System
+onValue(ref(db, 'users/' + uid), (snap) => {
     const data = snap.val();
     if (!data) {
-        set(userRef, {
+        set(ref(db, 'users/' + uid), {
             username: username,
             balance: 0,
             chatPoints: 0,
-            referredBy: (refCode && refCode !== username) ? refCode : null
+            refBy: (startParam && startParam !== username) ? startParam : null
         });
         set(ref(db, 'usernames/' + username), uid);
     } else {
-        balance = data.balance || 0;
-        points = data.chatPoints || 0;
-        document.getElementById('u-bal').innerText = balance.toFixed(4);
-        document.getElementById('u-pts').innerText = points;
+        currentBal = data.balance || 0;
+        currentPts = data.chatPoints || 0;
+        document.getElementById('bal').innerText = currentBal.toFixed(4);
+        document.getElementById('pts').innerText = currentPts;
     }
 });
-
 document.getElementById('my-username').innerText = username;
 
-// Ads Logic
-async function giveReward(amount) {
-    await update(userRef, { balance: increment(amount) });
-    
-    // Referral Reward (8%)
-    const snap = await get(userRef);
-    const referrer = snap.val()?.referredBy;
+// Ad Reward + 8% Referral Logic
+async function giveReward(amt) {
+    await update(ref(db, 'users/' + uid), { balance: increment(amt) });
+    const userSnap = await get(ref(db, 'users/' + uid));
+    const referrer = userSnap.val()?.refBy;
     if (referrer) {
         const refUidSnap = await get(ref(db, 'usernames/' + referrer));
         const refUid = refUidSnap.val();
         if (refUid) {
-            update(ref(db, 'users/' + refUid), { balance: increment(amount * 0.08) });
+            update(ref(db, 'users/' + refUid), { balance: increment(amt * 0.08) });
         }
     }
 }
 
-window.playAd = (type) => {
+// Combined Ads Handlers
+window.runAd = async (type) => {
     const btn = document.getElementById('btn-' + type);
     btn.disabled = true;
 
-    show_10276123('pop').then(async () => {
+    try {
         if (type === 'normal') {
+            await show_10276123('pop');
             await giveReward(0.0102);
-            setTimeout(() => btn.disabled = false, 180000);
+            startTimer('normal', 180);
         } else if (type === 'turbo') {
-            await show_10276123('pop'); // 2nd ad immediately
+            await show_10276123('pop');
+            await show_10276123('pop'); // Combined Ad 2
             await giveReward(0.0120);
-            setTimeout(() => btn.disabled = false, 45000);
-        } else if (type === 'points') {
-            await show_10276123('pop'); 
-            await show_10276123('pop'); // 3 combined
-            update(userRef, { chatPoints: increment(1) });
-            setTimeout(() => btn.disabled = false, 300000);
+            startTimer('turbo', 45);
+        } else if (type === 'pts') {
+            await show_10276123('pop');
+            await show_10276123('pop');
+            await show_10276123('pop'); // Combined Ad 3
+            update(ref(db, 'users/' + uid), { chatPoints: increment(1) });
+            startTimer('pts', 300);
         }
-        tg.showAlert("Reward Added!");
-    }).catch(() => {
+        tg.showAlert("Reward Successful!");
+    } catch (e) {
         btn.disabled = false;
-        tg.showAlert("Ad failed. Try again.");
-    });
+        tg.showAlert("Ad error or cancelled.");
+    }
 };
 
-// Tabs
-window.switchTab = (id) => {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    document.getElementById('nav-' + id).classList.add('active');
-    if(id === 'chat') loadChat();
-    if(id === 'leaderboard') loadLeader();
-    if(id === 'wallet') loadHistory();
-};
+function startTimer(type, sec) {
+    const btn = document.getElementById('btn-' + type);
+    const div = document.getElementById('timer-' + type);
+    const end = Date.now() + sec * 1000;
+    const itv = setInterval(() => {
+        const remaining = Math.ceil((end - Date.now()) / 1000);
+        div.innerText = `Wait: ${remaining}s`;
+        if (remaining <= 0) {
+            clearInterval(itv);
+            btn.disabled = false;
+            div.innerText = "Ready!";
+        }
+    }, 1000);
+}
 
-// Chat
-window.sendMsg = async () => {
-    const input = document.getElementById('chat-in');
-    if (!input.value.trim() || points < 1) return tg.showAlert("Need 1 Point!");
+// Chat System
+window.sendChat = async () => {
+    const inp = document.getElementById('chat-input');
+    if (!inp.value.trim() || currentPts < 1) return tg.showAlert("Need 1 Chat Point!");
     
-    await update(userRef, { chatPoints: increment(-1), balance: increment(0.02) });
-    push(ref(db, 'chat'), {
-        user: username,
-        text: input.value,
-        timestamp: Date.now()
+    await update(ref(db, 'users/' + uid), { 
+        chatPoints: increment(-1), 
+        balance: increment(0.02) 
     });
-    input.value = "";
+    push(ref(db, 'chat'), { u: username, m: inp.value, t: Date.now() });
+    inp.value = "";
+};
+
+// Tabs & Loaders
+window.tab = (id) => {
+    document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.getElementById('n-' + id).classList.add('active');
+    if (id === 'chat') loadChat();
+    if (id === 'leaderboard') loadLeaderboard();
+    if (id === 'wallet') loadHistory();
 };
 
 function loadChat() {
-    onValue(query(ref(db, 'chat'), limitToLast(15)), (snap) => {
-        const box = document.getElementById('chat-box');
+    onValue(query(ref(db, 'chat'), limitToLast(20)), (snap) => {
+        const box = document.getElementById('chat-list');
         box.innerHTML = "";
         snap.forEach(c => {
-            const m = c.val();
-            box.innerHTML += `<div class="bg-gray-800 p-2 rounded"><b>${m.user}:</b> ${m.text}</div>`;
+            const d = c.val();
+            box.innerHTML += `<div class="bg-white/5 p-2 rounded-lg"><b>${d.u}:</b> ${d.m}</div>`;
         });
         box.scrollTop = box.scrollHeight;
     });
 }
 
-// Wallet
-window.withdraw = () => {
-    const g = document.getElementById('gcash-num').value;
-    if (g.length < 10 || balance < 0.02) return tg.showAlert("Check GCash or Balance");
-    const amt = balance;
-    update(userRef, { balance: 0 });
-    const req = { uid, username, gcash: g, amount: amt, status: 'pending', time: new Date().toLocaleString() };
-    push(ref(db, 'withdrawals'), req);
-    push(ref(db, `history/${uid}`), req);
-    tg.showAlert("Request Submitted!");
+// Wallet & Admin
+window.submitWithdraw = () => {
+    const num = document.getElementById('gcash-num').value;
+    if (num.length < 10 || currentBal < 0.02) return tg.showAlert("Error: Check balance or number");
+    const amt = currentBal;
+    update(ref(db, 'users/' + uid), { balance: 0 });
+    const payload = { uid, username, gcash: num, amount: amt, status: 'pending', date: new Date().toLocaleString() };
+    push(ref(db, 'withdrawals'), payload);
+    push(ref(db, `history/${uid}`), payload);
+    tg.showAlert("Withdrawal Requested!");
 };
 
 function loadHistory() {
     onValue(ref(db, `history/${uid}`), (snap) => {
-        const box = document.getElementById('history-box');
-        box.innerHTML = "";
+        const box = document.getElementById('history-list');
+        box.innerHTML = "<h4 class='text-[10px] text-yellow-500 font-bold'>MY HISTORY</h4>";
         snap.forEach(c => {
             const h = c.val();
-            box.innerHTML += `<div class="glass p-2 text-[10px] flex justify-between"><span>${h.time}</span><span>₱${h.amount.toFixed(2)} - ${h.status}</span></div>`;
+            box.innerHTML += `<div class="glass p-2 text-[10px] flex justify-between"><span>${h.date}</span><span class="${h.status === 'pending'?'text-orange-400':'text-green-400'}">${h.status.toUpperCase()} (₱${h.amount.toFixed(2)})</span></div>`;
         });
     });
 }
 
-// Admin
-window.adminLogin = () => {
-    if (document.getElementById('admin-pass').value === "Propetas12") {
+window.doAdminLogin = () => {
+    if (document.getElementById('admin-pw').value === "Propetas12") {
         document.getElementById('admin-gate').classList.add('hidden');
         document.getElementById('admin-panel').classList.remove('hidden');
         loadAdmin();
@@ -158,50 +171,50 @@ window.adminLogin = () => {
 
 function loadAdmin() {
     onValue(ref(db, 'withdrawals'), (snap) => {
-        const box = document.getElementById('adm-reqs');
+        const box = document.getElementById('adm-requests');
         box.innerHTML = "";
         snap.forEach(c => {
             const r = c.val();
             if (r.status === 'pending') {
-                const div = document.createElement('div');
-                div.className = "glass p-2 text-xs flex justify-between items-center";
-                div.innerHTML = `<span>${r.username} (${r.gcash})<br>₱${r.amount.toFixed(2)}</span>
-                                 <button onclick="approve('${c.key}', ${r.amount})" class="bg-green-600 px-2 py-1 rounded">Pay</button>`;
-                box.appendChild(div);
+                const d = document.createElement('div');
+                d.className = "glass p-3 text-xs flex justify-between items-center";
+                d.innerHTML = `<span>${r.username} (${r.gcash})<br>₱${r.amount.toFixed(2)}</span>
+                               <button onclick="approveW('${c.key}', ${r.amount})" class="bg-green-600 px-3 py-1 rounded">PAY</button>`;
+                box.appendChild(d);
             }
         });
     });
     onValue(ref(db, 'admin/total'), s => document.getElementById('adm-total').innerText = (s.val() || 0).toFixed(2));
 }
 
-window.approve = async (key, amt) => {
+window.approveW = async (key, amt) => {
     await update(ref(db, `withdrawals/${key}`), { status: 'paid' });
     await update(ref(db, 'admin/total'), increment(amt));
 };
 
-function loadLeader() {
+function loadLeaderboard() {
     onValue(query(ref(db, 'users'), orderByChild('balance'), limitToLast(10)), (snap) => {
-        const box = document.getElementById('lead-box');
-        box.innerHTML = "<h3 class='text-yellow-500 font-bold'>TOP 10 EARNERS</h3>";
-        let list = [];
-        snap.forEach(c => list.push(c.val()));
-        list.reverse().forEach((u, i) => {
-            box.innerHTML += `<div class="glass p-2 flex justify-between text-sm"><span>${i+1}. ${u.username}</span><span class="text-green-400">₱${u.balance.toFixed(2)}</span></div>`;
+        const box = document.getElementById('leader-list');
+        box.innerHTML = "<h3 class='text-yellow-500 font-bold text-center'>🏅 TOP 10 EARNERS</h3>";
+        let arr = [];
+        snap.forEach(c => arr.push(c.val()));
+        arr.reverse().forEach((u, i) => {
+            box.innerHTML += `<div class="glass p-3 flex justify-between text-sm"><span>${i+1}. ${u.username}</span><span class="text-green-400">₱${u.balance.toFixed(2)}</span></div>`;
         });
     });
 }
 
-// Diamonds
-const container = document.getElementById('diamonds');
+// Background Diamonds
+const wrap = document.getElementById('diamond-wrap');
 for (let i = 0; i < 12; i++) {
     const d = document.createElement('div');
     d.className = 'diamond';
     d.style.left = Math.random() * 100 + '%';
-    d.style.animationDelay = Math.random() * 8 + 's';
-    container.appendChild(d);
+    d.style.animationDelay = Math.random() * 10 + 's';
+    wrap.appendChild(d);
 }
 
-// In-App Ad on Startup
+// In-App Ad Logic
 window.onload = () => {
     const last = localStorage.getItem('lastInApp') || 0;
     if (Date.now() - last > 120000) {
