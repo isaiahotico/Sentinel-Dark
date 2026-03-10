@@ -4,158 +4,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAPERHOUSE INC - Earn & Watch</title>
-    <!-- Tailwind CSS CDN -->
+    <title>PAPERHOUSE INC - Earn PHP</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Basic styling for better readability */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Tailwind's gray-100 */
-            color: #1f2937; /* Tailwind's gray-800 */
-        }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .card {
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-        .input-field {
-            border: 1px solid #d1d5eb; /* Tailwind's gray-300 */
-            border-radius: 4px;
-            padding: 10px 12px;
-            width: 100%;
-            margin-bottom: 16px;
-        }
-        .btn {
-            background-color: #2563eb; /* Tailwind's blue-600 */
-            color: white;
-            padding: 10px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        .btn:hover {
-            background-color: #1d4ed8; /* Tailwind's blue-700 */
-        }
-        .reward-info {
-            font-size: 0.875rem; /* Tailwind's text-sm */
-            color: #6b7280; /* Tailwind's gray-500 */
-            margin-top: 4px;
-        }
-        .profile-link-input {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .profile-link-input input {
-            flex-grow: 1;
-        }
-        .link-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e5e7eb; /* Tailwind's gray-200 */
-        }
-        .link-item:last-child {
-            border-bottom: none;
-        }
-        .view-btn {
-            background-color: #10b981; /* Tailwind's green-500 */
-            color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        .view-btn:hover {
-
-            background-color: #059669; /* Tailwind's green-600 */
-        }
-        .subscribe-btn {
-            background-color: #f59e0b; /* Tailwind's amber-500 */
-            color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        .subscribe-btn:hover {
-            background-color: #d97706; /* Tailwind's amber-600 */
-        }
-        .text-highlight {
-            color: #059669; /* Tailwind's green-600 */
-            font-weight: 600;
-        }
-        .queue-info {
-            font-size: 0.75rem; /* Tailwind's text-xs */
-            color: #9ca3af; /* Tailwind's gray-400 */
-        }
+        .hidden-section { display: none; }
+        .timer-progress { transition: width 1s linear; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1 class="text-4xl font-bold text-center mb-8">PAPERHOUSE INC</h1>
+<body class="bg-gray-900 text-white min-h-screen">
 
-        <!-- User Profile Section -->
-        <div class="card">
-            <h2 class="text-2xl font-semibold mb-4">Your Profile</h2>
-            <div class="profile-link-input">
-                <input type="text" id="telegramUsernameInput" placeholder="Enter your Telegram Username (e.g., @your_username)" class="input-field">
-                <button id="saveProfileBtn" class="btn">Save Profile</button>
+    <!-- Navbar -->
+    <nav class="bg-gray-800 p-4 border-b border-yellow-500 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-yellow-500 tracking-widest">PAPERHOUSE INC</h1>
+            <div id="user-display" class="bg-blue-600 px-3 py-1 rounded-full text-sm font-mono">
+                @<span id="tg-username">Loading...</span>
             </div>
-            <p class="text-sm text-gray-500 mb-2">Your Telegram username will be auto-displayed after saving.</p>
-            <p id="displayTelegramUsername" class="text-center text-lg font-medium text-highlight mb-4">Your Telegram Username: Not set</p>
+        </div>
+    </nav>
 
-            <!-- Link Storage -->
-            <h3 class="text-xl font-semibold mb-3">Store Your Links</h3>
-            <div class="profile-link-input">
-                <input type="text" id="linkToStoreInput" placeholder="Paste your YouTube Link here" class="input-field">
-                <button id="storeLinkBtn" class="btn">Store Link</button>
-            </div>
-            <p class="text-sm text-gray-500 mb-4">Your stored links will be visible to all users.</p>
-            <div id="storedLinksDisplay">
-                <!-- Stored links will be loaded here -->
+    <!-- Main Content -->
+    <div class="container mx-auto p-4 pb-24">
+        
+        <!-- Stats Card -->
+        <div class="bg-gray-800 rounded-xl p-6 mb-6 shadow-lg border border-gray-700">
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div>
+                    <p class="text-gray-400 text-xs uppercase">Balance</p>
+                    <p class="text-2xl font-bold text-green-400">₱ <span id="balance">0.00</span></p>
+                </div>
+                <div>
+                    <p class="text-gray-400 text-xs uppercase">Referrals</p>
+                    <p class="text-2xl font-bold text-blue-400"><span id="ref-count">0</span></p>
+                </div>
             </div>
         </div>
 
-        <!-- Video and Subscription Queue -->
-        <div class="card">
-            <h2 class="text-2xl font-semibold mb-4">Watch & Earn Queue</h2>
-
-            <div id="videoQueue">
-                <h3 class="text-lg font-medium mb-3">Videos to Watch</h3>
-                <!-- Video links will be loaded here -->
-            </div>
-
-            <div id="subscribeQueue" class="mt-6">
-                <h3 class="text-lg font-medium mb-3">Subscribe for Rewards</h3>
-                <!-- Subscribe links will be loaded here -->
+        <!-- Sections -->
+        <div id="watch-section" class="section">
+            <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fab fa-youtube text-red-500 mr-2"></i> Watch & Earn (₱0.01)</h2>
+            <div id="watch-list" class="space-y-3">
+                <!-- Links will appear here -->
+                <p class="text-gray-500 text-sm italic">Searching for available videos...</p>
             </div>
         </div>
 
-        <!-- Referral Section -->
-        <div class="card">
-            <h2 class="text-2xl font-semibold mb-4">Referral Program</h2>
-            <p class="text-lg mb-3">Earn 20% from your friends' earnings!</p>
-            <div class="flex items-center justify-center">
-                <input type="text" id="referralLinkInput" readonly class="input-field mr-4" style="width: auto; flex-grow: 1;">
-                <button id="copyReferralBtn" class="btn">Copy Link</button>
+        <div id="sub-section" class="section hidden-section">
+            <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fas fa-plus-circle text-red-500 mr-2"></i> Subscribe & Earn (₱0.03)</h2>
+            <div id="sub-list" class="space-y-3">
+                <!-- Links will appear here -->
+
             </div>
-            <p class="text-center text-sm text-gray-500 mt-3">Share this link and earn!</p>
-            <p class="text-center text-sm text-gray-500">Referral Bot: <a href="http://t.me/Sentinel_KRo_earning_bot?startapp" target="_blank" class="text-blue-600 hover:underline">http://t.me/Sentinel_KRo_earning_bot?startapp</a></p>
+        </div>
+
+        <div id="add-link-section" class="section hidden-section">
+            <h2 class="text-lg font-bold mb-4">Promote Your Link</h2>
+            <div class="bg-gray-800 p-4 rounded-lg space-y-4">
+                <input id="link-input" type="url" placeholder="Paste YouTube Link" class="w-full bg-gray-700 border border-gray-600 p-3 rounded-lg outline-none focus:border-yellow-500">
+                <select id="link-type" class="w-full bg-gray-700 border border-gray-600 p-3 rounded-lg">
+                    <option value="watch">Watch Task (100-120 Views)</option>
+                    <option value="sub">Subscribe Task (50-65 Subs)</option>
+                </select>
+                <button onclick="submitLink()" class="w-full bg-yellow-600 hover:bg-yellow-500 py-3 rounded-lg font-bold transition">Add Link</button>
+                <p id="cost-info" class="text-xs text-gray-400 text-center">First 5 links are FREE!</p>
+            </div>
+        </div>
+
+        <div id="profile-section" class="section hidden-section">
+            <h2 class="text-lg font-bold mb-4">Referral Program (20%)</h2>
+            <div class="bg-gray-800 p-4 rounded-lg mb-4">
+                <p class="text-sm mb-2">Share your link to earn 20% of friend's earnings:</p>
+                <div class="bg-black p-3 rounded border border-gray-700 break-all text-blue-400 text-sm" id="ref-link">
+                    http://t.me/Sentinel_KRo_earning_bot?startapp=
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Firebase Initialization -->
-    <script src="app.js"></script>
+    <!-- Timer Overlay -->
+    <div id="timer-overlay" class="fixed inset-0 bg-black bg-opacity-90 z-[60] flex flex-col items-center justify-center hidden">
+        <div class="text-center p-6">
+            <h3 class="text-2xl font-bold mb-4">Watching Video...</h3>
+            <div class="w-64 bg-gray-700 h-4 rounded-full overflow-hidden mb-4">
+                <div id="progress-bar" class="bg-yellow-500 h-full w-0 timer-progress"></div>
+            </div>
+            <p class="text-4xl font-mono" id="seconds">30</p>
+            <p class="mt-4 text-gray-400 italic">Don't close the browser</p>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 flex justify-around p-3 z-50">
+        <button onclick="showSection('watch')" class="flex flex-col items-center text-yellow-500"><i class="fas fa-play"></i><span class="text-[10px]">Watch</span></button>
+        <button onclick="showSection('sub')" class="flex flex-col items-center"><i class="fas fa-bell"></i><span class="text-[10px]">Sub</span></button>
+        <button onclick="showSection('add')" class="flex flex-col items-center text-green-500"><i class="fas fa-plus-circle text-xl"></i></button>
+        <button onclick="showSection('profile')" class="flex flex-col items-center"><i class="fas fa-user-friends"></i><span class="text-[10px]">Refer</span></button>
+    </div>
+
+    <!-- App Logic -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
