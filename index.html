@@ -1,91 +1,288 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Math Quiz & Reward App</title>
-    <link rel="stylesheet" href="style.css"> <!-- You might want a CSS file -->
+    <title>PAPERHOUSE INC</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #005f73 0%, #0a9396 100%);
+            color: #e9c46a; /* Shining yellow-green text */
+        }
+        .card {
+            background-color: rgba(13, 110, 109, 0.8); /* Darker blue-green with transparency */
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        .btn-reward {
+            background-color: #ffd166; /* Shining yellow for buttons */
+            color: #003049; /* Dark blue for button text */
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-reward:hover {
+            background-color: #ffc300;
+            transform: translateY(-2px);
+        }
+        .input-field {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid #005f73;
+            border-radius: 8px;
+            color: #e9c46a;
+            padding: 10px;
+        }
+        .input-field::placeholder {
+            color: rgba(233, 196, 106, 0.7);
+        }
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            padding-top: 100px; /* Location of the box */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0,0,0); /* Fallback color */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #003049; /* Dark blue */
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be adjusted */
+            max-width: 600px; /* Max width for content */
+            border-radius: 10px;
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #e9c46a;
+            text-decoration: none;
+
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #e9c46a;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
-<body>
-    <div id="app">
-        <!-- Activation Page -->
-        <div id="activation-page" class="page">
-            <h2>Activate Your Account</h2>
-            <p>To access the app, you need an activation code. The fee is 190 PHP.</p>
-            <p>Please send 190 PHP to Gcash: <strong>09634780237</strong></p>
-            <p>After payment, send your Gcash receipt and Telegram username to the admin.</p>
-            <p>Admin Telegram: @your_admin_telegram_username (Replace with actual)</p>
-            <label for="activation-code-input">Enter Activation Code:</label>
-            <input type="text" id="activation-code-input" placeholder="Your activation code">
-            <button id="activate-button">Activate</button>
-            <p id="activation-message" class="error-message"></p>
-        </div>
+<body class="font-sans antialiased">
 
-        <!-- Login/Signup Page (if not activated) -->
-        <div id="auth-page" class="page hidden">
-            <h2>Welcome!</h2>
-            <p>Please sign in or create an account.</p>
-            <label for="telegram-username-input">Telegram Username:</label>
-            <input type="text" id="telegram-username-input" placeholder="@yourusername">
-            <button id="login-button">Sign In / Register</button>
-            <p id="auth-message" class="error-message"></p>
+    <header class="p-6 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-yellow-400">PAPERHOUSE INC</h1>
+            <nav>
+                <button id="home-menu-btn" class="ml-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">Home</button>
+                <button id="profile-btn" class="ml-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">Profile</button>
+                <button id="tasks-btn" class="ml-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">Tasks</button>
+                <button id="deposit-btn" class="ml-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">Deposit</button>
+                <button id="withdraw-btn" class="ml-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">Withdraw</button>
+            </nav>
         </div>
+    </header>
 
-        <!-- Main Quiz Page -->
-        <div id="main-page" class="page hidden">
-            <h2>Math Quiz!</h2>
-            <p>Current Stars: <span id="stars-display">0.0</span> 🌟</p>
-            <p>Telegram: <span id="user-telegram-display"></span></p>
-            <div id="quiz-question"></div>
-            <input type="number" id="quiz-answer" placeholder="Your answer">
-            <button id="submit-answer">Submit Answer</button>
-            <p id="quiz-message" class="message"></p>
-            <button id="withdraw-button">Withdraw Stars</button>
-        </div>
-
-        <!-- Withdrawal Page -->
-        <div id="withdrawal-page" class="page hidden">
-            <h2>Withdraw Stars</h2>
-            <p>Current Stars: <span id="withdrawal-stars-display">0.0</span> 🌟</p>
-            <p>Select Withdrawal Option:</p>
-            <div class="withdrawal-options">                <button class="withdrawal-option" data-stars="10000" data-peso="100">10,000 Stars (100 PHP)</button>
-                <button class="withdrawal-option" data-stars="20000" data-peso="200">20,000 Stars (200 PHP)</button>
-                <button class="withdrawal-option" data-stars="30000" data-peso="300">30,000 Stars (300 PHP)</button>
+    <main id="main-content" class="container mx-auto p-6">
+        <!-- Home Content (initial view) -->
+        <section id="home-section" class="text-center">
+            <h2 class="text-4xl font-semibold mb-6">Welcome to PAPERHOUSE INC!</h2>
+            <p class="text-lg mb-8">Earn rewards by completing simple tasks. Watch videos, follow pages, visit websites, and more!</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Example Task Card -->
+                <div class="card p-6 text-center">
+                    <h3 class="text-2xl font-bold mb-4">Watch Video (Free)</h3>
+                    <p class="mb-4">Watch for 30 seconds and earn 0.01 Peso.</p>
+                    <button class="btn-reward px-6 py-3 rounded-lg w-full" id="watch-video-btn">Watch Now</button>
+                </div>
+                <!-- More task categories can be added here -->
             </div>
-            <p id="withdrawal-message" class="error-message"></p>
-            <button id="back-to-quiz">Back to Quiz</button>
-        </div>
+            <div class="mt-12">
+                <h3 class="text-3xl font-bold mb-6">Your Earnings</h3>
+                <p class="text-2xl"><span id="total-earned">0.00</span> Peso</p>
+            </div>
+        </section>
 
-        <!-- Admin Page -->
-        <div id="admin-page" class="page hidden">
-            <h2>Admin Panel</h2>
-            <label for="admin-password-input">Admin Password:</label>
-            <input type="password" id="admin-password-input">
-            <button id="admin-login-button">Login Admin</button>
-            <p id="admin-login-message" class="error-message"></p>
+        <!-- Task Area (hidden by default) -->
+        <section id="tasks-section" class="hidden text-center">
+            <h2 class="text-4xl font-semibold mb-6">Available Tasks</h2>
+            <div id="task-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Task cards will be loaded here by JavaScript -->
+            </div>
+        </section>
 
-            <div id="admin-content" class="hidden">
-                <h3>Generate Activation Code</h3>
-                <button id="generate-code-button">Generate New Code</button>
-                <p id="generated-code-display"></p>
+        <!-- Profile Area (hidden by default) -->
+        <section id="profile-section" class="hidden">
+            <h2 class="text-4xl font-semibold mb-6 text-center">Your Profile</h2>
+            <div class="card p-6">
+                <h3 class="text-2xl font-bold mb-4">My Links</h3>
+                <div class="mb-4">
+                    <label for="paste-link" class="block text-lg mb-2">Paste Your Link Here:</label>
+                    <textarea id="paste-link" rows="3" class="input-field w-full rounded-lg p-3" placeholder="e.g., https://example.com"></textarea>
+                    <button id="add-link-btn" class="btn-reward px-5 py-2 rounded-lg mt-3">Add Link</button>
 
-                <h3>Withdrawal Requests</h3>
-                <ul id="withdrawal-requests-list">
-                    <!-- Withdrawal requests will be loaded here -->
+</div>
+                <h3 class="text-2xl font-bold mb-4">My Stored Links</h3>
+                <ul id="stored-links-list" class="space-y-3">
+                    <!-- Stored links will be listed here -->
                 </ul>
+            </div>
+            <div class="card p-6 mt-8">
+                <h3 class="text-2xl font-bold mb-4">Referral Program</h3>
+                <p class="mb-4">Earn 20% of your referrals' earnings!</p>
+                <p class="text-lg mb-2">Your Referral Link:</p>
+                <input type="text" id="referral-link" value="YOUR_REFERRAL_LINK_HERE" readonly class="input-field w-full rounded-lg p-3 mb-3">
+                <button id="copy-referral-link" class="btn-reward px-5 py-2 rounded-lg">Copy Link</button>
+                <p class="mt-4">Total Invites: <span id="total-invites">0</span></p>
+            </div>
+        </section>
+
+        <!-- Deposit Section (hidden by default) -->
+        <section id="deposit-section" class="hidden text-center">
+            <h2 class="text-4xl font-semibold mb-6">Deposit Funds</h2>
+            <div class="card p-6 inline-block">
+                <h3 class="text-2xl font-bold mb-4">Deposit Options</h3>
+                <div class="text-left mb-4">
+                    <p class="font-bold mb-2">FaucetPay:</p>
+                    <p>Account: <code>otico.isai2@gmail.com</code></p>
+                    <p class="mt-2 font-bold mb-2">PayPal:</p>
+                    <p>Account: <code>otico.isai2@gmail.com</code></p>
+                    <p class="mt-2 font-bold mb-2">GCash:</p>
+                    <p>Number: <code>09952533453</code></p>
+                </div>
+                <div class="mb-4">
+                    <label for="deposit-amount" class="block text-lg mb-2">Amount:</label>
+                    <input type="number" id="deposit-amount" step="0.01" class="input-field w-full rounded-lg p-3 mb-3" placeholder="Enter amount in Peso">
+                </div>
+                <div class="mb-4">
+                    <label for="receipt-upload" class="block text-lg mb-2">Upload Proof of Payment (Screenshot/Photo):</label>
+                    <input type="file" id="receipt-upload" accept="image/*" class="input-field w-full rounded-lg p-3">
+                </div>
+                <button id="submit-deposit-btn" class="btn-reward px-6 py-3 rounded-lg w-full">Submit Deposit</button>
+            </div>
+            <div class="card p-6 mt-8 inline-block">
+                <h3 class="text-2xl font-bold mb-4">Deposit History</h3>
+                <ul id="deposit-history-list" class="text-left">
+                    <!-- Deposit history will be listed here -->
+                </ul>
+            </div>
+        </section>
+
+        <!-- Withdrawal Section (hidden by default) -->
+        <section id="withdraw-section" class="hidden text-center">
+            <h2 class="text-4xl font-semibold mb-6">Withdraw Funds</h2>
+            <div class="card p-6 inline-block">
+                <h3 class="text-2xl font-bold mb-4">Withdrawal Options</h3>
+                <div class="text-left mb-4">
+                    <p class="font-bold mb-2">GCash:</p>
+                    <p>Number: <code>09952533453</code></p>
+                    <p class="mt-2 font-bold mb-2">FaucetPay:</p>
+                    <p>Account: <code>otico.isai2@gmail.com</code></p>
+                    <p class="mt-2 font-bold mb-2">PayPal:</p>
+                    <p>Account: <code>otico.isai2@gmail.com</code></p>
+                </div>
+                <div class="mb-4">
+                    <label for="withdraw-amount" class="block text-lg mb-2">Amount to Withdraw:</label>
+                    <input type="number" id="withdraw-amount" step="0.01" class="input-field w-full rounded-lg p-3 mb-3" placeholder="Enter amount in Peso">
+                </div>
+                 <div class="mb-4">
+                    <label for="withdraw-method" class="block text-lg mb-2">Withdrawal Method:</label>
+                    <select id="withdraw-method" class="input-field w-full rounded-lg p-3">
+                        <option value="gcash">GCash</option>
+                        <option value="FaucetPay">FaucetPay</option>
+                        <option value="PayPal">PayPal</option>
+                    </select>
+                </div>
+                <button id="submit-withdraw-btn" class="btn-reward px-6 py-3 rounded-lg w-full">Request Withdrawal</button>
+            </div>
+            <div class="card p-6 mt-8 inline-block">
+                <h3 class="text-2xl font-bold mb-4">Withdrawal History</h3>
+                <ul id="withdrawal-history-list" class="text-left">
+                    <!-- Withdrawal history will be listed here -->
+                </ul>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Video Watch Modal -->
+    <div id="video-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-video-modal">&times;</span>
+            <h2 class="text-3xl font-bold mb-4 text-center">Watch Video</h2>
+            <p class="text-center mb-4">Please watch for 30 seconds.</p>
+            <div id="video-player-area" class="w-full h-64 bg-gray-700 rounded-lg flex items-center justify-center mb-4">
+                <!-- Embed video here or show a placeholder -->
+                <div id="loading-spinner" class="loading-spinner"></div>
+                <p id="countdown-timer" class="text-2xl font-bold hidden">0</p>
+            </div>
+            <div class="text-center">
+                <button id="claim-reward-btn" class="btn-reward px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>Claim Reward (0.01 Peso)</button>
             </div>
         </div>
     </div>
 
-    <!-- Monetag SDK -->
-    <script src='//libtl.com/sdk.js' data-zone='10550051' data-sdk='show_10550051'></script>
+    <!-- Link Visit Modal -->
+    <div id="link-visit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-link-modal">&times;</span>
+            <h2 id="modal-link-title" class="text-3xl font-bold mb-4 text-center">Visit Website</h2>
+            <p id="modal-link-description" class="text-center mb-4">Please visit for <span id="visit-duration"></span> seconds.</p>
+            <div id="link-preview-area" class="w-full h-96 bg-gray-700 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                <!-- Placeholder or iframe for the link -->
+                <div id="loading-spinner-link" class="loading-spinner"></div>
+                <p id="link-visit-countdown-timer" class="text-2xl font-bold hidden">0</p>
+                <p id="link-visit-info" class="text-center text-lg"></p>
+            </div>
+            <div class="text-center">
+                <button id="claim-link-reward-btn" class="btn-reward px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>Claim Reward</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <!-- Facebook Follow Modal -->
+    <div id="fb-follow-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-fb-modal">&times;</span>
+            <h2 id="modal-fb-title" class="text-3xl font-bold mb-4 text-center">Follow Facebook Page</h2>
+            <p id="modal-fb-description" class="text-center mb-4">Please follow the page and like/comment on a post. Reward: 0.01 Peso.</p>
+            <div id="fb-follow-area" class="w-full h-96 bg-gray-700 rounded-lg flexitems-center justify-center mb-4 overflow-hidden">
+                <!-- Placeholder or iframe for FB page -->
+                <p id="fb-follow-info" class="text-center text-lg">Please follow the page in the link below.</p>
+            </div>
+            <div class="text-center">
+                <button id="claim-fb-reward-btn" class="btn-reward px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>Claim Reward (0.01 Peso)</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- Your App Logic -->
+
+    <!-- Firebase Configuration -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <!-- Your custom JavaScript -->
     <script src="app.js"></script>
 </body>
 </html>
