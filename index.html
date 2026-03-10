@@ -4,143 +4,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAPERHOUSE INC</title>
+    <title>PAPERHOUSE INC - Earn & Watch</title>
     <!-- Tailwind CSS CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for cleaner YouTube embeds or general styling */
-        .youtube-thumbnail {
+        /* Basic styling for better readability */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Tailwind's gray-100 */
+            color: #1f2937; /* Tailwind's gray-800 */
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .input-field {
+            border: 1px solid #d1d5eb; /* Tailwind's gray-300 */
+            border-radius: 4px;
+            padding: 10px 12px;
             width: 100%;
-            height: 180px;
-            background-color: #e0e0e0;
+            margin-bottom: 16px;
+        }
+        .btn {
+            background-color: #2563eb; /* Tailwind's blue-600 */
+            color: white;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .btn:hover {
+            background-color: #1d4ed8; /* Tailwind's blue-700 */
+        }
+        .reward-info {
+            font-size: 0.875rem; /* Tailwind's text-sm */
+            color: #6b7280; /* Tailwind's gray-500 */
+            margin-top: 4px;
+        }
+        .profile-link-input {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 0.9em;
-            color: #555;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            position: relative;
+            gap: 10px;
+            margin-bottom: 16px;
         }
-        .youtube-thumbnail img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .profile-link-input input {
+            flex-grow: 1;
         }
-        .youtube-thumbnail::before {
-            content: '▶'; /* Play icon */
-            position: absolute;
-            font-size: 3em;
+        .link-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb; /* Tailwind's gray-200 */
+        }
+        .link-item:last-child {
+            border-bottom: none;
+        }
+        .view-btn {
+            background-color: #10b981; /* Tailwind's green-500 */
             color: white;
-            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
         }
-        .fade-out {
-            opacity: 0;
-            max-height: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-            margin-top: 0;
-            margin-bottom: 0;
-            overflow: hidden;
-            transition: opacity 0.5s ease-out, max-height 0.5s ease-out, padding 0.5s ease-out, margin 0.5s ease-out;
+        .view-btn:hover {
+
+            background-color: #059669; /* Tailwind's green-600 */
+        }
+        .subscribe-btn {
+            background-color: #f59e0b; /* Tailwind's amber-500 */
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .subscribe-btn:hover {
+            background-color: #d97706; /* Tailwind's amber-600 */
+        }
+        .text-highlight {
+            color: #059669; /* Tailwind's green-600 */
+            font-weight: 600;
+        }
+        .queue-info {
+            font-size: 0.75rem; /* Tailwind's text-xs */
+            color: #9ca3af; /* Tailwind's gray-400 */
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-900">
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center mb-8">PAPERHOUSE INC</h1>
 
-    <div class="container mx-auto p-4 max-w-4xl">
-        <header class="bg-blue-600 text-white p-6 rounded-lg shadow-md mb-6">
-            <h1 class="text-4xl font-bold text-center mb-2">PAPERHOUSE INC</h1>
-            <p class="text-center text-lg">Earn Pesos by Watching Videos & Subscribing to Channels!</p>
-            <div id="telegram-info" class="mt-4 text-center">
-                <p class="text-sm">Your ID: <span id="user-id-display" class="font-semibold text-blue-200">Loading...</span></p>
-                <div id="telegram-input-area" class="mt-2 flex justify-center items-center flex-wrap gap-2">
-                    <input type="text" id="telegram-username-input" placeholder="Enter your Telegram Username"
-                           class="p-2 rounded-md border border-gray-300 text-gray-800 w-full md:w-auto max-w-xs sm:max-w-sm">
-                    <button id="save-telegram-username"
-
-                            class="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-md text-white font-semibold transition duration-300">
-                        Save Telegram Username
-                    </button>
-                </div>
-                <p id="telegram-username-display" class="mt-2 text-lg hidden">Telegram Username: <span class="font-semibold text-green-300">N/A</span></p>
+        <!-- User Profile Section -->
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-4">Your Profile</h2>
+            <div class="profile-link-input">
+                <input type="text" id="telegramUsernameInput" placeholder="Enter your Telegram Username (e.g., @your_username)" class="input-field">
+                <button id="saveProfileBtn" class="btn">Save Profile</button>
             </div>
-            <div class="mt-4 text-center">
-                <p class="text-2xl">Your Balance: <span id="user-balance" class="font-bold text-yellow-300">0.00</span> PHP</p>
+            <p class="text-sm text-gray-500 mb-2">Your Telegram username will be auto-displayed after saving.</p>
+            <p id="displayTelegramUsername" class="text-center text-lg font-medium text-highlight mb-4">Your Telegram Username: Not set</p>
+
+            <!-- Link Storage -->
+            <h3 class="text-xl font-semibold mb-3">Store Your Links</h3>
+            <div class="profile-link-input">
+                <input type="text" id="linkToStoreInput" placeholder="Paste your YouTube Link here" class="input-field">
+                <button id="storeLinkBtn" class="btn">Store Link</button>
             </div>
-        </header>
-
-        <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            <!-- Link Submission Area -->
-            <section class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl font-bold mb-4 text-center">Submit Your Links</h2>
-                <div class="mb-4">
-                    <label for="link-url" class="block text-gray-700 font-bold mb-2">YouTube URL:</label>
-                    <input type="url" id="link-url" placeholder="e.g., https://www.youtube.com/watch?v=VIDEO_ID or https://www.youtube.com/channel/CHANNEL_ID"
-                           class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-bold mb-2">Link Type:</label>
-                    <div class="flex flex-wrap items-center space-x-0 sm:space-x-4 space-y-2 sm:space-y-0">
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="link-type" value="video" checked
-                                   class="form-radio h-5 w-5 text-blue-600">
-                            <span class="ml-2 text-gray-700">Video Watch (0.01 PHP reward for users)</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="link-type" value="subscribe"
-                                   class="form-radio h-5 w-5 text-blue-600">
-                            <span class="ml-2 text-gray-700">Channel Subscribe (0.03 PHP reward for users)</span>
-                        </label>
-                    </div>
-                </div>
-                <button id="submit-link"
-                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-md transition duration-300">
-                    Submit Link
-                </button>
-                <p id="submission-message" class="mt-3 text-center text-sm text-gray-600"></p>
-                <div class="mt-6 p-4 bg-yellow-50 rounded-md border border-yellow-200">
-                    <p class="font-semibold text-yellow-800">Submission Rules:</p>
-                    <ul class="list-disc list-inside text-yellow-700 text-sm">
-                        <li>First 5 video links you submit are FREE (100 watches each).</li>
-                        <li>Subsequent video links cost <span class="font-bold">1.00 PHP</span> (120 watches each).</li>
-                        <li>First 5 subscribe links you submit are FREE (50 subscribers each).</li>
-                        <li>Subsequent subscribe links cost <span class="font-bold">1.00 PHP</span> (65 subscribers each).</li>
-                        <li>Watched videos/subscribed channels disappear after required interactions.</li>
-                    </ul>
-                </div>
-            </section>
-
-            <!-- User's Submitted Links (for their own tracking) -->
-            <section class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl f
-
-ont-bold mb-4 text-center">Your Submitted Links</h2>
-                <div id="user-submitted-links" class="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
-                    <p class="text-center text-gray-500">No links submitted yet.</p>
-                    <!-- User's submitted links will be displayed here dynamically -->
-                </div>
-            </section>
-        </main>
-
-        <section class="mt-6 bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-2xl font-bold mb-4 text-center">Watch & Earn Videos</h2>
-            <div id="video-links-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <p class="text-center text-gray-500 col-span-full">No videos available to watch. Check back later!</p>
+            <p class="text-sm text-gray-500 mb-4">Your stored links will be visible to all users.</p>
+            <div id="storedLinksDisplay">
+                <!-- Stored links will be loaded here -->
             </div>
-        </section>
+        </div>
 
-        <section class="mt-6 bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 class="text-2xl font-bold mb-4 text-center">Subscribe & Earn Channels</h2>
-            <div id="subscribe-links-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <p class="text-center text-gray-500 col-span-full">No channels available to subscribe. Check back later!</p>
+        <!-- Video and Subscription Queue -->
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-4">Watch & Earn Queue</h2>
+
+            <div id="videoQueue">
+                <h3 class="text-lg font-medium mb-3">Videos to Watch</h3>
+                <!-- Video links will be loaded here -->
             </div>
-        </section>
 
+            <div id="subscribeQueue" class="mt-6">
+                <h3 class="text-lg font-medium mb-3">Subscribe for Rewards</h3>
+                <!-- Subscribe links will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Referral Section -->
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-4">Referral Program</h2>
+            <p class="text-lg mb-3">Earn 20% from your friends' earnings!</p>
+            <div class="flex items-center justify-center">
+                <input type="text" id="referralLinkInput" readonly class="input-field mr-4" style="width: auto; flex-grow: 1;">
+                <button id="copyReferralBtn" class="btn">Copy Link</button>
+            </div>
+            <p class="text-center text-sm text-gray-500 mt-3">Share this link and earn!</p>
+            <p class="text-center text-sm text-gray-500">Referral Bot: <a href="http://t.me/Sentinel_KRo_earning_bot?startapp" target="_blank" class="text-blue-600 hover:underline">http://t.me/Sentinel_KRo_earning_bot?startapp</a></p>
+        </div>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script type="module" src="./app.js"></script>
+    <!-- Firebase Initialization -->
+    <script src="app.js"></script>
 </body>
 </html>
