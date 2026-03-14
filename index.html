@@ -4,105 +4,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAPERHOUSE INC - Earn PHP</title>
+    <title>PAPERHOUSE INC</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .hidden-section { display: none; }
-        .timer-progress { transition: width 1s linear; }
+        .modal-75 { width: 75vw; height: 75vh; top: 12.5vh; left: 12.5vw; }
+        @keyframes pulse-gold { 0%, 100% { border-color: #fbbf24; } 50% { border-color: #f59e0b; } }
+        .admin-card { border: 2px solid #fbbf24; animation: pulse-gold 2s infinite; }
     </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen">
 
-    <!-- Navbar -->
-    <nav class="bg-gray-800 p-4 border-b border-yellow-500 sticky top-0 z-50">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold text-yellow-500 tracking-widest">PAPERHOUSE INC</h1>
-            <div id="user-display" class="bg-blue-600 px-3 py-1 rounded-full text-sm font-mono">
-                @<span id="tg-username">Loading...</span>
+    <!-- Header -->
+    <header class="bg-gray-800 p-4 sticky top-0 z-50 border-b border-yellow-600 flex justify-between items-center">
+        <h1 class="font-black text-xl text-yellow-500 italic">PAPERHOUSE INC</h1>
+        <div class="flex items-center gap-2 bg-black/40 px-3 py-1 rounded-full border border-gray-700">
+            <span class="text-green-400 text-sm font-bold">₱<span id="balance">0.00</span></span>
+            <div class="w-px h-4 bg-gray-600"></div>
+            <span class="text-blue-400 text-xs" id="tg-username">@Guest</span>
+        </div>
+    </header>
+
+    <main class="p-4 pb-24 space-y-6">
+        
+        <!-- Referral & Info -->
+        <div id="info-box" class="bg-gradient-to-r from-blue-900 to-indigo-900 p-4 rounded-xl shadow-lg">
+            <p class="text-[10px] uppercase font-bold text-blue-300 mb-1">Your Referral Link (20% Commission)</p>
+            <p id="ref-link" class="text-xs bg-black/30 p-2 rounded break-all select-all">Loading...</p>
+        </div>
+
+        <!-- Task Sections -->
+        <div id="tasks-container" class="space-y-8">
+            <!-- Admin Section -->
+            <section id="admin-section">
+                <h2 class="text-amber-400 font-bold mb-3 flex items-center gap-2">
+                    <i class="fas fa-shield-alt"></i> Official Sponsor Links
+                </h2>
+                <div id="admin-list" class="space-y-3"></div>
+            </section>
+
+            <!-- Facebook Section -->
+            <section>
+                <h2 class="text-blue-500 font-bold mb-3 flex items-center gap-2">
+                    <i class="fab fa-facebook"></i> Facebook Tasks (₱0.02)
+                </h2>
+
+                <p class="text-[10px] text-gray-400 mb-2 italic">Note: Must follow, like, and comment on the post/page.</p>
+                <div id="fb-list" class="space-y-3"></div>
+            </section>
+
+            <!-- Website Section -->
+            <section>
+                <h2 class="text-emerald-500 font-bold mb-3 flex items-center gap-2">
+                    <i class="fas fa-globe"></i> Website Visits (₱0.02)
+                </h2>
+                <div id="web-list" class="space-y-3"></div>
+            </section>
+
+            <!-- YouTube Section -->
+            <section>
+                <h2 class="text-red-500 font-bold mb-3 flex items-center gap-2">
+                    <i class="fab fa-youtube"></i> YouTube Watch/Sub
+                </h2>
+                <div id="yt-list" class="space-y-3"></div>
+            </section>
+        </div>
+
+        <!-- Add Link Form -->
+        <div id="add-section" class="hidden-section bg-gray-800 p-5 rounded-2xl border border-gray-700">
+            <h2 class="text-xl font-bold mb-4">Promote Your Link</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs text-gray-400">Select Task Type</label>
+                    <select id="link-type" class="w-full bg-gray-900 p-3 rounded-lg border border-gray-600 focus:border-yellow-500 outline-none">
+                        <option value="yt_watch">YouTube Watch (₱0.01 Reward)</option>
+                        <option value="yt_sub">YouTube Sub (₱0.03 Reward)</option>
+                        <option value="fb_follow">Facebook Follow (₱0.02 Reward)</option>
+                        <option value="web_visit">Website Visit (₱0.02 Reward)</option>
+                    </select>
+                </div>
+                <input id="link-url" type="url" placeholder="https://..." class="w-full bg-gray-900 p-3 rounded-lg border border-gray-600 outline-none">
+                <textarea id="link-desc" placeholder="Enter link definition (e.g. Subscribe to my gaming channel!)" class="w-full bg-gray-900 p-3 rounded-lg border border-gray-600 outline-none h-20 text-sm"></textarea>
+                <button onclick="handleLinkSubmission()" class="w-full bg-yellow-600 hover:bg-yellow-500 py-3 rounded-xl font-bold transition-all shadow-lg shadow-yellow-900/20">
+                    Publish Link
+                </button>
+                <p id="quota-info" class="text-[10px] text-center text-gray-500"></p>
             </div>
         </div>
+    </main>
+
+    <!-- Website Card Modal (75%) -->
+    <div id="web-modal" class="fixed inset-0 z-[100] bg-black/90 hidden">
+        <div class="absolute modal-75 bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col">
+            <div class="bg-gray-100 p-2 flex justify-between items-center border-b">
+                <span class="text-xs text-gray-600 font-mono italic" id="modal-status">Please click the link below to start timer</span>
+                <span id="modal-timer" class="bg-red-500 text-white px-3 py-1 rounded-full font-bold">15s</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center justify-center p-6 text-center bg-gray-50">
+                <h3 id="modal-def" class="text-gray-800 font-bold mb-4"></h3>
+                <a id="modal-go-btn" href="#" target="_blank" class="bg-blue-600 text-white px-8 py-4 rounded-full font-bold text-lg animate-bounce">
+                    CLICK HERE TO VISIT & START
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Facebook/YT Overlay -->
+    <div id="task-overlay" class="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center hidden">
+
+<div id="status-bubble" class="bg-yellow-500 text-black px-4 py-2 rounded-full font-bold mb-8 animate-pulse">TIMER PAUSED - RETURN TO PAGE</div>
+        <div class="relative w-48 h-48 flex items-center justify-center">
+            <svg class="absolute inset-0 w-full h-full transform -rotate-90">
+                <circle cx="96" cy="96" r="80" stroke="currentColor" stroke-width="12" fill="transparent" class="text-gray-800" />
+                <circle id="circle-progress" cx="96" cy="96" r="80" stroke="currentColor" stroke-width="12" fill="transparent" stroke-dasharray="502" stroke-dashoffset="502" class="text-yellow-500 transition-all duration-100" />
+            </svg>
+            <span id="task-sec" class="text-5xl font-black">15</span>
+        </div>
+        <p class="mt-10 text-gray-400 text-center px-10">Follow the page, like, and comment to validate your reward.</p>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 flex justify-around p-3 z-50">
+        <button onclick="toggleView('tasks')" class="flex flex-col items-center text-yellow-500"><i class="fas fa-tasks"></i><span class="text-[10px]">Tasks</span></button>
+        <button onclick="toggleView('add')" class="flex flex-col items-center text-gray-400"><i class="fas fa-plus-square"></i><span class="text-[10px]">Add Link</span></button>
     </nav>
 
-    <!-- Main Content -->
-    <div class="container mx-auto p-4 pb-24">
-        
-        <!-- Stats Card -->
-        <div class="bg-gray-800 rounded-xl p-6 mb-6 shadow-lg border border-gray-700">
-            <div class="grid grid-cols-2 gap-4 text-center">
-                <div>
-                    <p class="text-gray-400 text-xs uppercase">Balance</p>
-                    <p class="text-2xl font-bold text-green-400">₱ <span id="balance">0.00</span></p>
-                </div>
-                <div>
-                    <p class="text-gray-400 text-xs uppercase">Referrals</p>
-                    <p class="text-2xl font-bold text-blue-400"><span id="ref-count">0</span></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sections -->
-        <div id="watch-section" class="section">
-            <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fab fa-youtube text-red-500 mr-2"></i> Watch & Earn (₱0.01)</h2>
-            <div id="watch-list" class="space-y-3">
-                <!-- Links will appear here -->
-                <p class="text-gray-500 text-sm italic">Searching for available videos...</p>
-            </div>
-        </div>
-
-        <div id="sub-section" class="section hidden-section">
-            <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fas fa-plus-circle text-red-500 mr-2"></i> Subscribe & Earn (₱0.03)</h2>
-            <div id="sub-list" class="space-y-3">
-                <!-- Links will appear here -->
-
-            </div>
-        </div>
-
-        <div id="add-link-section" class="section hidden-section">
-            <h2 class="text-lg font-bold mb-4">Promote Your Link</h2>
-            <div class="bg-gray-800 p-4 rounded-lg space-y-4">
-                <input id="link-input" type="url" placeholder="Paste YouTube Link" class="w-full bg-gray-700 border border-gray-600 p-3 rounded-lg outline-none focus:border-yellow-500">
-                <select id="link-type" class="w-full bg-gray-700 border border-gray-600 p-3 rounded-lg">
-                    <option value="watch">Watch Task (100-120 Views)</option>
-                    <option value="sub">Subscribe Task (50-65 Subs)</option>
-                </select>
-                <button onclick="submitLink()" class="w-full bg-yellow-600 hover:bg-yellow-500 py-3 rounded-lg font-bold transition">Add Link</button>
-                <p id="cost-info" class="text-xs text-gray-400 text-center">First 5 links are FREE!</p>
-            </div>
-        </div>
-
-        <div id="profile-section" class="section hidden-section">
-            <h2 class="text-lg font-bold mb-4">Referral Program (20%)</h2>
-            <div class="bg-gray-800 p-4 rounded-lg mb-4">
-                <p class="text-sm mb-2">Share your link to earn 20% of friend's earnings:</p>
-                <div class="bg-black p-3 rounded border border-gray-700 break-all text-blue-400 text-sm" id="ref-link">
-                    http://t.me/Sentinel_KRo_earning_bot?startapp=
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Timer Overlay -->
-    <div id="timer-overlay" class="fixed inset-0 bg-black bg-opacity-90 z-[60] flex flex-col items-center justify-center hidden">
-        <div class="text-center p-6">
-            <h3 class="text-2xl font-bold mb-4">Watching Video...</h3>
-            <div class="w-64 bg-gray-700 h-4 rounded-full overflow-hidden mb-4">
-                <div id="progress-bar" class="bg-yellow-500 h-full w-0 timer-progress"></div>
-            </div>
-            <p class="text-4xl font-mono" id="seconds">30</p>
-            <p class="mt-4 text-gray-400 italic">Don't close the browser</p>
-        </div>
-    </div>
-
-    <!-- Bottom Navigation -->
-    <div class="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 flex justify-around p-3 z-50">
-        <button onclick="showSection('watch')" class="flex flex-col items-center text-yellow-500"><i class="fas fa-play"></i><span class="text-[10px]">Watch</span></button>
-        <button onclick="showSection('sub')" class="flex flex-col items-center"><i class="fas fa-bell"></i><span class="text-[10px]">Sub</span></button>
-        <button onclick="showSection('add')" class="flex flex-col items-center text-green-500"><i class="fas fa-plus-circle text-xl"></i></button>
-        <button onclick="showSection('profile')" class="flex flex-col items-center"><i class="fas fa-user-friends"></i><span class="text-[10px]">Refer</span></button>
-    </div>
-
-    <!-- App Logic -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
