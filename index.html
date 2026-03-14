@@ -10,122 +10,111 @@
     <style>
         .hidden-section { display: none; }
         .modal-75 { width: 85vw; height: 75vh; position: fixed; top: 12.5vh; left: 7.5vw; z-index: 100; }
-        .iframe-container { width: 100%; height: 100%; border: none; }
-        .overlay-trigger { position: absolute; inset: 0; background: rgba(0,0,0,0.1); z-index: 110; cursor: pointer; }
-        @keyframes glow { 0%, 100% { box-shadow: 0 0 5px #fbbf24; } 50% { box-shadow: 0 0 20px #fbbf24; } }
-        .admin-task { animation: glow 2s infinite; border: 1px solid #fbbf24; }
+        .admin-glow { border: 2px solid #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
+        .click-shield { position: absolute; inset: 0; background: rgba(0,0,0,0.05); z-index: 110; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen font-sans">
 
-    <!-- Top Bar -->
+    <!-- Navbar -->
     <nav class="bg-gray-800 border-b border-yellow-600 p-4 sticky top-0 z-50 flex justify-between items-center">
-        <div class="flex flex-col">
-            <span class="text-xs text-gray-400">PAPERHOUSE INC</span>
-            <span id="tg-username" class="text-sm font-bold text-blue-400">@Detecting...</span>
+        <div>
+            <h1 class="text-xs font-black text-yellow-500 italic">PAPERHOUSE INC</h1>
+            <p id="tg-username" class="text-[10px] text-blue-400 font-mono">@Detecting...</p>
         </div>
         <div class="text-right">
-            <span class="text-xs text-gray-400 block">Balance</span>
-            <span class="text-green-400 font-black text-lg">₱<span id="balance">0.000</span></span>
+            <p class="text-[10px] text-gray-400">BALANCE</p>
+            <p class="text-green-400 font-black">₱<span id="balance">0.000</span></p>
         </div>
     </nav>
 
-    <!-- Main Container -->
-    <main class="p-4 pb-32 max-w-2xl mx-auto space-y-6">
+    <!-- App Container -->
+    <main class="p-4 pb-28 max-w-lg mx-auto space-y-4">
         
-        <!-- Tab Navigation -->
-        <div class="flex bg-gray-800 rounded-lg p-1 gap-1">
-            <button onclick="switchTab('earn')" class="flex-1 py-2 rounded-md bg-gray-700 text-yellow-500 font-bold text-sm">Earn</button>
-            <button onclick="switchTab('promote')" class="flex-1 py-2 rounded-md hover:bg-gray-700 text-sm">Promote</button>
-            <button onclick="switchTab('wallet')" class="flex-1 py-2 rounded-md hover:bg-gray-700 text-sm">Wallet</button>
+        <!-- Tabs -->
+        <div class="flex bg-gray-800 p-1 rounded-xl">
+            <button onclick="showTab('earn')" class="flex-1 py-2 text-xs font-bold rounded-lg bg-gray-700 text-yellow-500">EARN</button>
+            <button onclick="showTab('promote')" class="flex-1 py-2 text-xs font-bold rounded-lg">PROMOTE</button>
+            <button onclick="showTab('wallet')" class="flex-1 py-2 text-xs font-bold rounded-lg">WALLET</button>
+            <button onclick="promptAdmin()" class="flex-1 py-2 text-xs font-bold rounded-lg text-red-400">ADMIN</button>
         </div>
 
-        <!-- Earn Section -->
-        <div id="section-earn" class="space-y-6">
-            <div id="admin-area" class="space-y-3">
-                <h3 class="text-xs font-bold text-yellow-500 uppercase tracking-widest">Sponsored Links</h3>                <div id="admin-list" class="grid gap-3"></div>
-            </div>
-
-            <div class="space-y-3">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Tasks Overview</h3>
-                <div id="task-list" class="grid gap-3"></div>
-            </div>
+        <!-- Section: Earn -->
+        <div id="tab-earn" class="space-y-4">
+            <div id="admin-links" class="space-y-2"></div>
+            <div id="user-links" class="space-y-2"></div>
         </div>
 
-        <!-- Promote Section -->
-        <div id="section-promote" class="hidden-section bg-gray-800 p-5 rounded-xl border border-gray-700">
-            <h2 class="text-lg font-bold mb-4">Add Your Link</h2>
-            <div class="space-y-4">
-                <select id="link-type" class="w-full bg-gray-900 border border-gray-600 p-3 rounded-lg outline-none focus:border-yellow-500">
-                    <option value="fb_follow">Facebook Follow (₱0.02 reward)</option>
-                    <option value="web_visit">Website Visit (₱0.02 reward)</option>
-                    <option value="yt_watch">YouTube Watch (₱0.01 reward)</option>
-                    <option value="yt_sub">YouTube Subscribe (₱0.03 reward)</option>
-                </select>
-                <input id="link-url" type="url" placeholder="Paste your link here..." class="w-full bg-gray-900 border border-gray-600 p-3 rounded-lg outline-none">
-                <textarea id="link-def" placeholder="Definition: What should users do? (e.g. Follow and like my recent post!)" class="w-full bg-gray-900 border border-gray-600 p-3 rounded-lg h-24 text-sm"></textarea>
-                <button onclick="createNewLink()" class="w-full bg-yellow-600 hover:bg-yellow-500 py-3 rounded-lg font-bold">Add Link</button>
-                <p id="quota-info" class="text-[10px] text-gray-400 italic text-center"></p>
-            </div>
+        <!-- Section: Promote -->
+        <div id="tab-promote" class="hidden-section bg-gray-800 p-5 rounded-2xl border border-gray-700 space-y-4">            <h3 class="font-bold border-b border-gray-700 pb-2">Add New Task</h3>
+            <select id="link-type" class="w-full bg-gray-900 border border-gray-600 p-3 rounded-lg text-sm">
+                <option value="fb_follow">Facebook Follow (₱0.02)</option>
+                <option value="web_visit">Website Visit (₱0.02)</option>
+                <option value="yt_watch">YouTube Watch (₱0.01)</option>
+                <option value="yt_sub">YouTube Subscribe (₱0.03)</option>
+            </select>
+            <input id="link-url" type="url" placeholder="Paste URL here" class="w-full bg-gray-900 border border-gray-600 p-3 rounded-lg text-sm">
+            <textarea id="link-def" placeholder="Task Definition (e.g. Subscribe and turn on bell)" class="w-full bg-gray-900 border border-gray-600 p-3 rounded-lg text-sm h-20"></textarea>
+            <button onclick="submitLink()" class="w-full bg-yellow-600 py-3 rounded-xl font-bold text-sm">Create Link</button>
+            <p id="quota-msg" class="text-[10px] text-gray-500 text-center uppercase tracking-widest font-bold"></p>
         </div>
 
-        <!-- Wallet Section -->
-        <div id="section-wallet" class="hidden-section space-y-4">
-            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 text-center">
-                <p class="text-gray-400 text-sm">Available for Withdrawal</p>
-                <h2 class="text-3xl font-black text-green-400 mt-1">₱<span id="wallet-balance">0.00</span></h2>
+        <!-- Section: Wallet -->
+        <div id="tab-wallet" class="hidden-section space-y-4">
+            <div class="bg-gradient-to-br from-green-900 to-gray-800 p-6 rounded-2xl border border-green-700 text-center">
+                <p class="text-xs text-green-300">Available Funds</p>
+                <h2 class="text-3xl font-black">₱<span id="wallet-bal">0.00</span></h2>
             </div>
-            
-            <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 space-y-4">                <h3 class="font-bold">Withdraw Funds</h3>
-                <select id="wd-method" class="w-full bg-gray-900 border border-gray-600 p-3 rounded-lg">
+            <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 space-y-3">
+                <select id="wd-method" class="w-full bg-gray-900 p-3 rounded-lg text-sm">
                     <option value="GCash">GCash</option>
                     <option value="FaucetPay">FaucetPay (Email)</option>
                     <option value="PayPal">PayPal (Email)</option>
                 </select>
-                <input id="wd-account" type="text" placeholder="Account Number or Email" class="w-full bg-gray-900 border border-gray-600 p-3 rounded-lg outline-none">
-                <input id="wd-amount" type="number" min="1" placeholder="Minimum ₱1.00" class="w-full bg-gray-900 border border-gray-600 p-3 rounded-lg outline-none">
-                <button onclick="requestWithdrawal()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold">Submit Request</button>
-                <p class="text-[10px] text-gray-500 text-center">Admin manual approval takes 24-48 hours.</p>
+                <input id="wd-acc" type="text" placeholder="Account Number / Email" class="w-full bg-gray-900 p-3 rounded-lg text-sm">
+                <input id="wd-amt" type="number" min="1" placeholder="Amount (Min ₱1)" class="w-full bg-gray-900 p-3 rounded-lg text-sm">                <button onclick="requestWD()" class="w-full bg-blue-600 py-3 rounded-xl font-bold">Request Withdrawal</button>
+            </div>
+        </div>
+
+        <!-- Section: Admin (Hidden) -->
+        <div id="tab-admin" class="hidden-section space-y-4 bg-gray-800 p-4 rounded-xl">
+            <h2 class="font-bold text-red-500 underline">Admin Controls</h2>
+            <div class="p-3 bg-black/50 rounded-lg">
+                <p class="text-xs font-bold mb-2">Create Global Sponsored Link (100k cap)</p>
+                <input id="adm-url" type="url" placeholder="Sponsor URL" class="w-full bg-gray-700 p-2 rounded mb-2 text-xs">
+                <input id="adm-def" type="text" placeholder="Definition" class="w-full bg-gray-700 p-2 rounded mb-2 text-xs">
+                <button onclick="createAdminLink()" class="w-full bg-red-600 py-2 rounded text-xs font-bold">POST SPONSOR</button>
+            </div>
+            <div class="space-y-2">
+                <p class="text-xs font-bold">Pending Withdrawals</p>
+                <div id="admin-wd-list" class="space-y-2"></div>
             </div>
         </div>
     </main>
 
-    <!-- WEBSITE MODAL (75%) -->
-    <div id="web-modal" class="fixed inset-0 bg-black/90 z-[100] hidden">
-        <div class="modal-75 bg-white rounded-t-xl flex flex-col overflow-hidden">
-            <div class="bg-gray-100 p-2 flex justify-between items-center border-b border-gray-300">
-                <span id="modal-timer" class="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold italic">CLICKSITE TO START</span>
-                <span class="text-[10px] text-gray-500">PAPERHOUSE BROWSER</span>
+    <!-- Modal: Website Card (75%) -->
+    <div id="web-modal" class="fixed inset-0 bg-black/95 z-[100] hidden">
+        <div class="modal-75 bg-white rounded-xl flex flex-col overflow-hidden shadow-2xl">
+            <div class="bg-gray-200 p-2 flex justify-between items-center text-gray-800">
+                <span id="web-status" class 
+="text-[10px] font-bold px-2 py-1 bg-yellow-400 rounded-full">INTERACT TO START (0/3)</span>
+                <span id="web-timer" class="font-mono font-bold">15s</span>
             </div>
-            <div class="relative flex-1 bg-white">
-                <div id="click-trigger" class="overlay-trigger flex items-center justify-center">
-                    <div class="bg-black/80 text-white px-6 py-4 rounded-xl text-center">
-                        <p class="font-bold">INTERACTION REQUIRED</p>
-                        <p class="text-xs text-gray-300">Click anywhere on the site to start timer</p>
-                    </div>
-                </div>
-                <iframe id="web-frame" src="" class="iframe-container"></iframe>
+            <div class="relative flex-1">
+                <div id="click-shield" class="click-shield"></div>
+                <iframe id="web-frame" src="" class="w-full h-full border-none"></iframe>
             </div>
         </div>
     </div>
 
-    <!-- FACEBOOK / YT OVERLAY -->
-    <div id="task-overlay" class="fixed inset-0 bg-black/95 z-[200] hidden flex flex-col items-center justify-center p-10">
-        <div id="timer-ring" class="relative w-32 h-32 mb-8">
-            <svg class="w-full h-full transform -rotate-90">
-                <circle cx="64" cy="64" r="60" stroke="#374151" stroke-width="8" fill="transparent" />
-                <circle id="progress-circle" cx="64" cy="64" r="60" stroke="#fbbf24" stroke-width="8" fill="transparent" stroke-dasharray="377" stroke-dashoffset="377" />
-            </svg>
-            <span id="timer-text" class="absolute inset-0 flex items-center justify-center text-3xl font-black">15</span>
+    <!-- Modal: Social Task Overlay -->
+    <div id="social-modal" class="fixed inset-0 bg-black/95 z-[200] hidden flex flex-col items-center justify-center p-8">
+        <div class="w-24 h-24 border-4 border-yellow-500 rounded-full flex items-center justify-center mb-6">
+            <span id="social-timer" class="text-3xl font-black">30</span>
         </div>
-        <p id="task-status" class="text-yellow-500 font-bold animate-pulse text-center">TASK IN PROGRESS...</p>
-        <div class="mt-10 bg-gray-800 p-4 rounded-lg border border-gray-700 text-xs text-gray-400 leading-relaxed">
-            <p class="font-bold text-gray-200 mb-2 underline text-center uppercase">Instructions</p>
-            <ul class="list-disc ml-4 space-y-1">
-                <li>Follow/Subscribe to the user's page</li>
-                <li>Like at least one post and leave a comment</li>
-                <li>Respect the user's content to keep your reward</li>
-            </ul>
+        <p id="social-status" class="text-yellow-500 font-bold animate-pulse text-center">TASK RUNNING...</p>
+        <div class="mt-10 text-[10px] text-gray-500 uppercase leading-relaxed text-center">
+            Must follow, like and comment.<br>Returning early will pause the timer.
         </div>
     </div>
 
