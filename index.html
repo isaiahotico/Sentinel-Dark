@@ -9,113 +9,115 @@
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    
     <!-- Monetag SDKs -->
     <script src='//libtl.com/sdk.js' data-zone='10555663' data-sdk='show_10555663'></script>
     <script src='//libtl.com/sdk.js' data-zone='10830602' data-sdk='show_10830602'></script>
     <script src='//libtl.com/sdk.js' data-zone='10555746' data-sdk='show_10555746'></script>
 
     <style>
-        :root { --main-bg: #1a1a1a; --main-color: #ffffff; --accent: #3b82f6; }
-        body { background-color: var(--main-bg); color: var(--main-color); transition: 0.3s; overflow-x: hidden; }
+        :root { --main-bg: #111827; --main-color: #ffffff; }
+        body { background-color: var(--main-bg); color: var(--main-color); transition: background 0.3s; }
         .sidebar { transform: translateX(-100%); transition: 0.3s ease-in-out; }
         .sidebar.active { transform: translateX(0); }
-        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+        .glass { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .hidden-section { display: none; }
+        .task-card { animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="font-sans">
+<body class="font-sans min-h-screen">
 
-    <!-- Top Bar -->
+    <!-- Header -->
     <header class="p-4 flex justify-between items-center glass sticky top-0 z-50">
-        <button id="menuBtn" class="text-2xl">☰</button>
-        <h1 class="font-bold text-lg">PAPERHOUSE INC12</h1>
-        <div id="userBar" class="text-sm font-mono bg-blue-600 px-2 py-1 rounded">👤 Loading...</div>
+        <button id="menuBtn" class="text-2xl p-2">☰</button>
+        <h1 class="font-black text-xl tracking-tighter">PAPERHOUSE INC12</h1>
+        <div id="userBar" class="text-xs font-bold bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
+            👤 Loading...
+        </div>
     </header>
 
     <!-- Sliding Menu -->
-    <nav id="sidebar" class="fixed left-0 top-0 h-full w-64 sidebar glass z-[60] p-5 flex flex-col gap-4">
-        <button id="closeBtn" class="text-right text-xl">✕</button>
-        <button onclick="showSection('home')" class="py-2 hover:bg-blue-500 rounded px-2 text-left">🏠 Home</button>
-        <button onclick="showSection('tasks')" class="py-2 hover:bg-blue-500 rounded px-2 text-left">✅ Tasks</button>
-        <button onclick="showSection('chat')" class="py-2 hover:bg-blue-500 rounded px-2 text-left">💬 Global Chat</button>
-        <button onclick="showSection('topics')" class="py-2 hover:bg-blue-500 rounded px-2 text-left">📚 Topics</button>
-        <button onclick="showSection('users')" class="py-2 hover:bg-blue-500 rounded px-2 text-left">👥 Users Online</button>
+    <nav id="sidebar" class="fixed left-0 top-0 h-full w-72 sidebar glass bg-gray-900 z-[60] p-6 flex flex-col shadow-2xl">
+        <div class="flex justify-between items-center mb-10">
+            <span class="font-bold text-xl">Menu</span>
+            <button id="closeBtn" class="text-2xl">✕</button>
+        </div>
+        
+        <div class="space-y-2">
+            <button onclick="showSection('home')" class="w-full text-left p-4 hover:bg-white/10 rounded-xl transition">🏠 Home / Ads</button>
 
-        <div class="mt-auto border-t pt-4">
-            <p class="text-xs mb-2">Pick Theme Color:</p>
-            <input type="color" id="colorPicker" class="w-full h-8 cursor-pointer rounded">
+            <button onclick="showSection('tasks')" class="w-full text-left p-4 hover:bg-white/10 rounded-xl transition">✅ Tasks Section</button>
+            <button onclick="showSection('chat')" class="w-full text-left p-4 hover:bg-white/10 rounded-xl transition">💬 Community Chat</button>
+            <button onclick="showSection('users')" class="w-full text-left p-4 hover:bg-white/10 rounded-xl transition">👥 Users Online</button>
+        </div>
+
+        <div class="mt-auto p-4 bg-white/5 rounded-2xl">
+            <p class="text-xs font-bold uppercase opacity-50 mb-3">Personalize UI</p>
+            <div class="flex items-center gap-4">
+                <input type="color" id="colorPicker" class="h-10 w-10 rounded-lg cursor-pointer bg-transparent">
+                <span class="text-sm">Change Background</span>
+            </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="p-4 mb-20">
+    <main class="p-4 pb-24 max-w-2xl mx-auto">
         
-        <!-- Home Section -->
+        <!-- Home / Ad Section -->
         <section id="home-section">
-            <div class="bg-blue-900/30 p-6 rounded-xl border border-blue-500 mb-4">
-                <h2 class="text-2xl font-bold">Welcome!</h2>
-                <p>Watch <span id="adCountDisplay" class="text-yellow-400">0</span>/27 Ads to post links.</p>
-                <button onclick="watchMandatoryAd()" class="mt-4 bg-yellow-500 text-black font-bold py-2 px-4 rounded shadow-lg hover:scale-105 active:scale-95 transition">
-                    Watch Ad (Earn Progress)
+            <div class="bg-gradient-to-br from-blue-600 to-purple-700 p-8 rounded-3xl shadow-xl text-center">
+                <h2 class="text-3xl font-black mb-2">ADS CENTER</h2>
+                <p class="opacity-80 mb-6">You need 27 ads to unlock link posting</p>
+                
+                <div class="text-5xl font-mono font-bold mb-6">
+                    <span id="adCountDisplay">0</span><span class="text-xl opacity-50">/27</span>
+                </div>
+
+                <button onclick="watchRandomAd()" class="w-full bg-white text-blue-700 font-black py-4 rounded-2xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-transform">
+                    WATCH AD NOW
                 </button>
             </div>
         </section>
 
         <!-- Tasks Section -->
         <section id="tasks-section" class="hidden-section">
-            <h2 class="text-xl font-bold mb-4">Post Link (1 Free Daily)</h2>
-            <div id="postLinkForm" class="bg-gray-800 p-4 rounded-lg mb-6">
-                <input type="text" id="tgLinkInput" placeholder="https://t.me/yourlink" class="w-full p-2 rounded bg-gray-700 text-white mb-2">
-                <p id="cooldownMsg" class="text-red-400 text-xs mb-2"></p>
-                <button onclick="handlePostLink()" class="w-full bg-green-600 py-2 rounded font-bold">Post Link</button>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Tasks</h2>
+                <div id="cooldownTimer" class="text-xs font-mono text-yellow-400"></div>
             </div>
-            <div id="taskList" class="grid gap-3">
-                <!-- Links appear here -->
+
+            <div id="postLinkForm" class="bg-white/5 p-4 rounded-2xl border border-white/10 mb-8">
+                <input type="text" id="tgLinkInput" placeholder="https://t.me/your_channel" class="w-full p-4 rounded-xl bg-black/40 text-white border border-white/10 mb-3 outline-none focus:border-blue-500">
+                <button onclick="handlePostLink()" class="w-full bg-blue-600 py-4 rounded-xl font-bold hover:bg-blue-500 transition">Post My Link (1 Daily)</button>
+            </div>
+
+            <div id="taskList" class="space-y-3">
+                <!-- Task links will appear here -->
             </div>
         </section>
 
         <!-- Chat Section -->
         <section id="chat-section" class="hidden-section">
-            <div id="chatBox" class="h-96 overflow-y-auto bg-black/20 p-3 rounded mb-2 border border-white/10"></div>
+            <div id="chatBox" class="h-[60vh] overflow-y-auto bg-black/20 p-4 rounded-2xl mb-4 border border-white/5 flex flex-col gap-3"></div>
             <div class="flex gap-2">
-                <input type="text" id="chatInput" class="flex-1 p-2 rounded bg-gray-800" placeholder="Type a message...">
-                <button onclick="sendMessage()" class="bg-blue-600 px-4 rounded">Send</button>
+                <input type="text" id="chatInput" class="flex-1 p-4 rounded-xl bg-white/5 outline-none border border-white/10 focus:border-blue-500" placeholder="Write a message...">
+                <button onclick="sendMessage()" class="bg-blue-600 px-6 rounded-xl font-bold">Send</button>
             </div>
         </section>
 
-        <!-- Topics Section -->
-        <section id="topics-section" class="hidden-section">
-            <button onclick="openTopicModal()" class="w-full bg-purple-600 py-2 rounded mb-4 font-bold">+ Create Topic</button>
-            <div id="topicList" class="space-y-4"></div>
-        </section>
-
-        <!-- Users List -->
+        <!-- Users Section -->
         <section id="users-section" class="hidden-section">
-            <h2 class="text-xl mb-4">Online Users</h2>
-            <ul id="onlineList" class="divide-y divide-gray-700"></ul>
+            <h2 class="text-xl font-bold mb-4">Users Online</h2>
+            <div id="onlineList" class="bg-white/5 rounded-2xl divide-y divide-white/5"></div>
         </section>
 
     </main>
 
     <!-- Footer -->
-    <footer class="fixed bottom-0 w-full glass p-3 text-center text-xs">
-        <div id="footerDateTime"></div>
-        <p class="opacity-50">© 2024 PAPERHOUSE INC12</p>
+    <footer class="fixed bottom-0 w-full glass p-4 text-center">
+        <div id="footerDateTime" class="font-mono text-xs opacity-60"></div>
     </footer>
-
-    <!-- Topic Modal -->
-    <div id="topicModal" class="fixed inset-0 bg-black/80 hidden z-[100] p-6">
-        <div class="bg-gray-800 p-4 rounded-xl max-w-md mx-auto mt-10">
-            <h3 class="text-lg font-bold mb-3">New Topic</h3>
-            <input type="text" id="topicTitle" placeholder="Topic Title" class="w-full p-2 mb-2 bg-gray-700 rounded">
-            <textarea id="topicDesc" placeholder="Description" class="w-full p-2 mb-2 bg-gray-700 rounded h-24"></textarea>
-            <input type="file" id="topicImg" accept="image/*" class="mb-4 text-xs">
-            <div class="flex gap-2">
-                <button onclick="submitTopic()" class="bg-green-600 flex-1 py-2 rounded">Post</button>
-                <button onclick="closeTopicModal()" class="bg-red-600 px-4 rounded">Cancel</button>
-            </div>
-        </div>
-    </div>
 
     <script src="app.js"></script>
 </body>
