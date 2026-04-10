@@ -10,16 +10,25 @@
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    <!-- Ad SDK -->
+    <!-- Ad SDKs - Using the provided libtl.com scripts -->
+    <!-- These are for interstitial ads, ensure they are correctly configured on the ad network side -->
     <script src='//libtl.com/sdk.js' data-zone='10555663' data-sdk='show_10555663'></script>
     <script src='//libtl.com/sdk.js' data-zone='10830602' data-sdk='show_10830602'></script>
     <script src='//libtl.com/sdk.js' data-zone='10555746' data-sdk='show_10555746'></script>
 
     <style>
         :root { --main-bg: #1a1a1a; --main-color: #ffffff; }
-        body { background-color: var(--main-bg); color: var(--main-color); transition: 0.3s; }
-        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+        body { background-color: var(--main-bg); color: var(--main-color); transition: background-color 0.3s, color 0.3s; }
+        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
         .hidden-task { display: none !important; }
+        /* Add fade-in animation for tasks */
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
     </style>
 </head>
 <body class="min-h-screen pb-20">
@@ -27,7 +36,7 @@
     <!-- Header -->
     <header class="p-4 glass sticky top-0 z-50 flex justify-between items-center shadow-lg">
         <h1 class="text-xl font-bold">PAPERHOUSE INC12</h1>
-        <div id="user-display" class="text-sm font-mono bg-blue-600 px-3 py-1 rounded-full">Loading...</div>
+        <div id="user-display" class="text-sm font-mono bg-blue-600 px-3 py-1 rounded-full">Loading User...</div>
     </header>
 
     <main class="p-4 space-y-6">
@@ -35,14 +44,15 @@
         <!-- Theme Picker -->
         <section class="glass p-4 rounded-xl">
             <h2 class="text-sm font-semibold mb-2">Personalize</h2>
-            <div class="flex gap-4">
+            <div class="flex gap-4 items-center">
                 <div>
-                    <label class="text-xs">Background</label>
-                    <input type="color" id="bgColor" class="block w-10 h-10 rounded cursor-pointer" value="#1a1a1a">
+                    <label for="bgColor" class="text-xs block mb-1">Background</label>
+                    <input type="color" id="bgColor" class="w-10 h-10 rounded cursor-pointer border-none p-0" value="#1a1a1a">
+
                 </div>
                 <div>
-                    <label class="text-xs">Text Color</label>
-                    <input type="color" id="textColor" class="block w-10 h-10 rounded cursor-pointer" value="#ffffff">
+                    <label for="textColor" class="text-xs block mb-1">Text Color</label>
+                    <input type="color" id="textColor" class="w-10 h-10 rounded cursor-pointer border-none p-0" value="#ffffff">
                 </div>
             </div>
         </section>
@@ -50,18 +60,18 @@
         <!-- Stats & Ads Section -->
         <section class="glass p-4 rounded-xl text-center">
             <div class="text-3xl font-bold" id="ad-count">0 / 27</div>
-            <p class="text-xs opacity-70">Ads watched to unlock posting</p>
-
-            <button onclick="watchAd()" class="mt-3 bg-green-600 hover:bg-green-500 px-6 py-2 rounded-lg font-bold w-full transition">WATCH AD</button>
+            <p class="text-xs opacity-70 mb-3">Ads watched to unlock posting</p>
+            <button onclick="watchAd()" id="watch-ad-btn" class="bg-green-600 hover:bg-green-500 px-6 py-2 rounded-lg font-bold w-full transition duration-300 ease-in-out">WATCH AD</button>
+            <p id="ad-status" class="text-xs mt-2 opacity-70">Waiting to watch ads...</p>
         </section>
 
         <!-- Task Section -->
         <section id="task-section" class="space-y-4">
             <div class="glass p-4 rounded-xl">
                 <h2 class="font-bold mb-3">Post Link (12h Cooldown)</h2>
-                <input type="text" id="task-link" placeholder="https://t.me/..." class="w-full p-2 rounded bg-black/20 border border-white/20 mb-2">
-                <button onclick="submitTask()" id="btn-submit" class="w-full bg-blue-600 py-2 rounded font-bold opacity-50 cursor-not-allowed" disabled>Submit Task</button>
-                <p id="cooldown-timer" class="text-xs mt-2 text-red-400"></p>
+                <input type="text" id="task-link" placeholder="https://t.me/your_channel" class="w-full p-2 rounded bg-black/20 border border-white/20 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="submitTask()" id="btn-submit" class="w-full bg-blue-600 py-2 rounded font-bold opacity-50 cursor-not-allowed transition duration-300 ease-in-out" disabled>Submit Task</button>
+                <p id="cooldown-timer" class="text-xs mt-2 text-red-400 h-5"></p>
             </div>
 
             <div class="space-y-2">
@@ -81,18 +91,20 @@
         <!-- Chat Section -->
         <section class="glass p-4 rounded-xl flex flex-col h-[400px]">
             <h2 class="font-bold mb-2">Global Chat</h2>
-            <div id="chat-box" class="flex-grow overflow-y-auto space-y-2 mb-2 p-2 bg-black/10 rounded"></div>
+            <div id="chat-box" class="flex-grow overflow-y-auto space-y-2 mb-2 p-3 bg-black/10 rounded border border-white/10">
+                <!-- Chat messages injected here -->
+            </div>
             <div class="flex gap-2">
-                <input type="text" id="chat-input" placeholder="Type message..." class="flex-grow p-2 rounded bg-black/20 border border-white/20">
-                <button onclick="sendMessage()" class="bg-blue-500 px-4 py-2 rounded">Send</button>
+                <input type="text" id="chat-input" placeholder="Type message..." class="flex-grow p-2 rounded bg-black/20 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="sendMessage()" id="send-message-btn" class="bg-blue-500 hover:bg-blue-400 px-4 py-2 rounded font-bold transition duration-300 ease-in-out">Send</button>
             </div>
         </section>
 
     </main>
 
     <!-- Footer -->
-    <footer class="fixed bottom-0 w-full glass p-2 text-center text-xs">
-        <div id="footer-date"></div>
+    <footer class="fixed bottom-0 w-full glass p-2 text-center text-xs z-50">
+        <div id="footer-date">Loading date...</div>
     </footer>
 
     <script src="app.js"></script>
