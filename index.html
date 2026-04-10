@@ -1,132 +1,100 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAPERHOUSE INC</title>
+    <title>PAPERHOUSE INC12</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <!-- Ad SDK -->
+    <script src='//libtl.com/sdk.js' data-zone='10555663' data-sdk='show_10555663'></script>
+    <script src='//libtl.com/sdk.js' data-zone='10830602' data-sdk='show_10830602'></script>
+    <script src='//libtl.com/sdk.js' data-zone='10555746' data-sdk='show_10555746'></script>
+
     <style>
-        .hidden-section { display: none; }
-        .modal-75 { width: 90vw; height: 75vh; position: fixed; top: 12.5vh; left: 5vw; z-index: 100; border-radius: 20px; overflow: hidden; border: 4px solid #1f2937; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        .admin-glow { border: 2px solid #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
-        /* Transparent sensor that reloads the site when clicked */
-        .interaction-sensor { position: absolute; inset: 0; z-index: 150; cursor: pointer; background: rgba(0,0,0,0.01); }
+        :root { --main-bg: #1a1a1a; --main-color: #ffffff; }
+        body { background-color: var(--main-bg); color: var(--main-color); transition: 0.3s; }
+        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+        .hidden-task { display: none !important; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen font-sans selection:bg-yellow-500">
+<body class="min-h-screen pb-20">
 
-    <!-- Top Bar -->
-    <nav class="bg-gray-800 border-b border-yellow-600 p-4 sticky top-0 z-50 flex justify-between items-center">
-        <div>
-            <h1 class="text-sm font-black text-yellow-500 italic tracking-tighter">PAPERHOUSE INC</h1>
-            <p id="tg-username" class="text-[10px] text-blue-400 font-mono">@detecting...</p>
-        </div>
-        <div class="text-right">
-            <span class="text-[9px] text-gray-500 block font-bold tracking-widest uppercase">My Balance</span>
-            <span class="text-green-400 font-black text-xl">₱<span id="balance">0.000</span></span>
-        </div>
-    </nav>
+    <!-- Header -->
+    <header class="p-4 glass sticky top-0 z-50 flex justify-between items-center shadow-lg">
+        <h1 class="text-xl font-bold">PAPERHOUSE INC12</h1>
+        <div id="user-display" class="text-sm font-mono bg-blue-600 px-3 py-1 rounded-full">Loading...</div>
+    </header>
 
-    <!-- App Container -->
-    <main class="p-4 pb-24 max-w-lg mx-auto space-y-4">
+    <main class="p-4 space-y-6">
         
-        <!-- Navigation Tabs -->
-        <div class="flex bg-gray-800 rounded-2xl p-1 border border-gray-700 shadow-inner">
-            <button onclick="switchTab('earn')" id="btn-earn" class="flex-1 py-2.5 text-xs font-bold rounded-xl bg-gray-700 text-yellow-500 transition-all">EARN</button>
-            <button onclick="switchTab('promote')" id="btn-promote" class="flex-1 py-2.5 text-xs font-bold rounded-xl text-gray-500">PROMOTE</button>
-            <button onclick="switchTab('wallet')" id="btn-wallet" class="flex-1 py-2.5 text-xs font-bold rounded-xl text-gray-500">WALLET</button>
-
-            <button onclick="openAdmin()" class="flex-1 py-2.5 text-xs font-bold rounded-xl text-red-600"><i class="fas fa-user-lock"></i></button>
-        </div>
-
-        <!-- Section: Earn -->
-        <div id="section-earn" class="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-            <div id="admin-links" class="space-y-3"></div>
-            <div class="relative py-2"><div class="absolute inset-0 flex items-center"><span class="w-full border-t border-gray-800"></span></div><div class="relative flex justify-center text-[10px] uppercase font-bold text-gray-600"><span class="bg-gray-900 px-2 tracking-widest">Community Links</span></div></div>
-            <div id="user-links" class="space-y-3"></div>
-        </div>
-
-        <!-- Section: Promote -->
-        <div id="section-promote" class="hidden-section bg-gray-800 p-6 rounded-3xl border border-gray-700 space-y-4">
-            <h3 class="font-bold text-sm flex items-center gap-2"><i class="fas fa-bullhorn text-yellow-500"></i> New Campaign</h3>
-            <select id="promo-type" class="w-full bg-gray-900 border border-gray-700 p-3 rounded-xl text-sm outline-none focus:border-yellow-500">
-                <option value="fb_follow">Facebook Follow (₱0.02)</option>
-                <option value="web_visit">Website Visit (₱0.02)</option>
-                <option value="yt_sub">YouTube Sub (₱0.03)</option>
-            </select>
-            <input id="promo-url" type="url" placeholder="Paste link (https://...)" class="w-full bg-gray-900 border border-gray-700 p-3 rounded-xl text-sm outline-none focus:border-yellow-500">
-            <textarea id="promo-def" placeholder="Instructions (e.g. Subscribe and like recent post)" class="w-full bg-gray-900 border border-gray-700 p-3 rounded-xl text-sm h-20 outline-none focus:border-yellow-500"></textarea>
-            <button onclick="createCampaign()" class="w-full bg-yellow-600 hover:bg-yellow-500 py-3.5 rounded-2xl font-black text-sm transition-all shadow-lg shadow-yellow-900/20 uppercase">Publish Link</button>
-            <p id="promo-quota" class="text-[10px] text-gray-500 text-center font-bold uppercase tracking-widest"></p>
-        </div>
-
-        <!-- Section: Wallet -->
-        <div id="section-wallet" class="hidden-section space-y-4">
-            <div class="bg-gradient-to-br from-indigo-900/50 to-gray-800 p-8 rounded-3xl border border-indigo-500/30 text-center">
-                <p class="text-[10px] text-indigo-300 font-bold uppercase tracking-widest mb-1">Withdrawable Balance</p>
-                <h2 class="text-4xl font-black">₱<span id="wallet-bal">0.00</span></h2>
+        <!-- Theme Picker -->
+        <section class="glass p-4 rounded-xl">
+            <h2 class="text-sm font-semibold mb-2">Personalize</h2>
+            <div class="flex gap-4">
+                <div>
+                    <label class="text-xs">Background</label>
+                    <input type="color" id="bgColor" class="block w-10 h-10 rounded cursor-pointer" value="#1a1a1a">
+                </div>
+                <div>
+                    <label class="text-xs">Text Color</label>
+                    <input type="color" id="textColor" class="block w-10 h-10 rounded cursor-pointer" value="#ffffff">
+                </div>
             </div>
-            <div class="bg-gray-800 p-6 rounded-3xl border border-gray-700 space-y-4 shadow-xl">
-                <select id="wd-method" class="w-full bg-gray-900 p-3 rounded-xl text-sm outline-none border border-gray-700">
-                    <option value="GCash">GCash</option>
-                    <option value="FaucetPay">FaucetPay (Email)</option>
-                    <option value="PayPal">PayPal (Email)</option>
-                </select>
-                <input id="wd-acc" type="text" placeholder="Account Number or Email" class="w-full bg-gray-900 p-3 rounded-xl text-sm outline-none border border-gray-700">
-                <input id="wd-amt" type="number" min="1" placeholder="Amount (Minimum ₱1)" class="w-full bg-gray-900 p-3 rounded-xl text-sm outline-none border border-gray-700">
-                <button onclick="requestCashout()" class="w-full bg-blue-600 hover:bg-blue-500 py-3.5 rounded-2xl font-black transition-all">Request Payout</button>
-            </div>
-        </div>
+        </section>
 
-<!-- Section: Admin Hub -->
-        <div id="section-admin" class="hidden-section space-y-4 bg-gray-800 p-5 rounded-3xl border-2 border-red-900/50">
-            <h2 class="font-black text-red-500 italic tracking-tight">ADMIN CONTROL PANEL</h2>
-            <div class="p-4 bg-black/40 rounded-2xl space-y-2 border border-gray-700 shadow-inner">
-                <p class="text-[10px] font-bold text-yellow-500 uppercase tracking-tighter">Post Global Sponsor (100k Capacity)</p>
-                <input id="adm-url" type="url" placeholder="Sponsor Website URL" class="w-full bg-gray-700 p-3 rounded-xl text-xs outline-none">
-                <input id="adm-def" type="text" placeholder="Campaign Definition" class="w-full bg-gray-700 p-3 rounded-xl text-xs outline-none">
-                <button onclick="adminPublish()" class="w-full bg-red-600 hover:bg-red-500 py-3 rounded-xl text-xs font-black uppercase shadow-lg">Activate Global Sponsor</button>
+        <!-- Stats & Ads Section -->
+        <section class="glass p-4 rounded-xl text-center">
+            <div class="text-3xl font-bold" id="ad-count">0 / 27</div>
+            <p class="text-xs opacity-70">Ads watched to unlock posting</p>
+
+            <button onclick="watchAd()" class="mt-3 bg-green-600 hover:bg-green-500 px-6 py-2 rounded-lg font-bold w-full transition">WATCH AD</button>
+        </section>
+
+        <!-- Task Section -->
+        <section id="task-section" class="space-y-4">
+            <div class="glass p-4 rounded-xl">
+                <h2 class="font-bold mb-3">Post Link (12h Cooldown)</h2>
+                <input type="text" id="task-link" placeholder="https://t.me/..." class="w-full p-2 rounded bg-black/20 border border-white/20 mb-2">
+                <button onclick="submitTask()" id="btn-submit" class="w-full bg-blue-600 py-2 rounded font-bold opacity-50 cursor-not-allowed" disabled>Submit Task</button>
+                <p id="cooldown-timer" class="text-xs mt-2 text-red-400"></p>
             </div>
-            <div id="admin-withdrawals" class="space-y-2 pt-4 border-t border-gray-700">
-                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Withdrawal Approvals</p>
+
+            <div class="space-y-2">
+                <h2 class="font-bold">Available Tasks</h2>
+                <div id="tasks-container" class="space-y-2">
+                    <!-- Tasks injected here -->
+                </div>
             </div>
-        </div>
+        </section>
+
+        <!-- Users Online -->
+        <section class="glass p-4 rounded-xl">
+            <h2 class="font-bold mb-2">Online Users</h2>
+            <div id="online-users" class="flex flex-wrap gap-2 text-xs"></div>
+        </section>
+
+        <!-- Chat Section -->
+        <section class="glass p-4 rounded-xl flex flex-col h-[400px]">
+            <h2 class="font-bold mb-2">Global Chat</h2>
+            <div id="chat-box" class="flex-grow overflow-y-auto space-y-2 mb-2 p-2 bg-black/10 rounded"></div>
+            <div class="flex gap-2">
+                <input type="text" id="chat-input" placeholder="Type message..." class="flex-grow p-2 rounded bg-black/20 border border-white/20">
+                <button onclick="sendMessage()" class="bg-blue-500 px-4 py-2 rounded">Send</button>
+            </div>
+        </section>
+
     </main>
 
-    <!-- WEBSITE MODAL CARD (75%) -->
-    <div id="web-modal" class="fixed inset-0 bg-black/95 z-[100] hidden flex flex-col items-center justify-center">
-        <div class="modal-75 bg-white flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-            <!-- Modal Header -->
-            <div class="bg-gray-100 p-3 flex justify-between items-center text-gray-800 border-b border-gray-300">
-                <div class="flex items-center gap-2">
-                    <span id="load-label" class="text-[9px] font-black uppercase px-2 py-1 bg-yellow-400 rounded-md tracking-tighter animate-pulse">Click Site to Reload (0/3)</span>
-                </div>
-                <span id="web-timer" class="font-mono font-black text-xs px-2 py-1 bg-black text-white rounded shadow-md">LOCKED</span>
-            </div>
-            <!-- Iframe Container -->
-            <div class="flex-1 relative">
-                <div id="interaction-sensor" onclick="handleReloadClick()" class="interaction-sensor"></div>
-                <iframe id="web-frame" src="" class="w-full h-full border-none pointer-events-none"></iframe>
-            </div>
-        </div>
-    </div>
+    <!-- Footer -->
+    <footer class="fixed bottom-0 w-full glass p-2 text-center text-xs">
+        <div id="footer-date"></div>
+    </footer>
 
-    <!-- SOCIAL TASK MODAL -->
-    <div id="social-modal" class="fixed inset-0 bg-black/95 z-[200] hidden flex flex-col items-center justify-center p-12 text-center">
-        <div class="relative w-24 h-24 border-[6px] border-yellow-500 rounded-full flex items-center justify-center mb-8 shadow-[0_0_20px_rgba(251,191,36,0.2)]">
-            <span id="social-timer" class="text-4xl font-black text-white">15</span>
-        </div>
-        <p id="social-status" class="text-yellow-500 font-bold animate-pulse text-sm">TASK VERIFICATION...</p>
-        <div class="mt-10 bg-gray-800/50 p-6 rounded-2xl border border-gray-700 text-[10px] text-gray-400 leading-relaxed">
-            <p class="text-white font-black mb-2 uppercase underline decoration-yellow-500">Security Check</p>
-            Follow the link, engage with the content, and return to this page.<br>
-            Leaving the app pauses the security timer.
-        </div>
-    </div>
-
-    <script type="module" src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
