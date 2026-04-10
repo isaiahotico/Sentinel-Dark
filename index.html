@@ -5,106 +5,111 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PAPERHOUSE INC12</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Telegram SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    <!-- Ad SDKs - Using the provided libtl.com scripts -->
-    <!-- These are for interstitial ads, ensure they are correctly configured on the ad network side -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <!-- Monetag SDKs -->
     <script src='//libtl.com/sdk.js' data-zone='10555663' data-sdk='show_10555663'></script>
     <script src='//libtl.com/sdk.js' data-zone='10830602' data-sdk='show_10830602'></script>
     <script src='//libtl.com/sdk.js' data-zone='10555746' data-sdk='show_10555746'></script>
-
     <style>
-        :root { --main-bg: #1a1a1a; --main-color: #ffffff; }
-        body { background-color: var(--main-bg); color: var(--main-color); transition: background-color 0.3s, color 0.3s; }
-        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
-        .hidden-task { display: none !important; }
-        /* Add fade-in animation for tasks */
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.5s ease-out forwards;
-        }
+        :root { --main-bg: #1a1a1a; --accent-color: #3b82f6; }
+        body { background-color: var(--main-bg); color: white; transition: 0.3s; }
+        .sidebar { transition: 0.3s transform ease-in-out; }
+        .hidden-link { display: none; }
     </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="font-sans pb-20">
 
     <!-- Header -->
-    <header class="p-4 glass sticky top-0 z-50 flex justify-between items-center shadow-lg">
-        <h1 class="text-xl font-bold">PAPERHOUSE INC12</h1>
-        <div id="user-display" class="text-sm font-mono bg-blue-600 px-3 py-1 rounded-full">Loading User...</div>
+    <header class="p-4 flex justify-between items-center bg-gray-900 shadow-xl sticky top-0 z-50">
+        <button onclick="toggleMenu()" class="text-2xl">☰</button>
+        <h1 class="font-bold text-xl">PAPERHOUSE INC12</h1>
+        <div id="user-display" class="text-blue-400 font-mono text-sm">@Guest</div>
     </header>
 
-    <main class="p-4 space-y-6">
+    <!-- Sliding Menu -->
+    <div id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 bg-gray-800 z-[60] -translate-x-full p-5 shadow-2xl">
+        <button onclick="toggleMenu()" class="absolute top-4 right-4 text-xl">✕</button>
+        <h2 class="text-xl font-bold mb-8 mt-4">Navigation</h2>
+        <nav class="space-y-4">
+            <button onclick="showSection('tasks')" class="block w-full text-left p-2 hover:bg-gray-700 rounded">📋 Tasks Section</button>
+            <button onclick="showSection('chat')" class="block w-full text-left p-2 hover:bg-gray-700 rounded">💬 Global Chat</button>
+            <button onclick="showSection('users')" class="block w-full text-left p-2 hover:bg-gray-700 rounded">👥 Online Users</button>
+            <button onclick="showSection('settings')" class="block w-full text-left p-2 hover:bg-gray-700 rounded">🎨 Settings</button>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="p-4 max-w-2xl mx-auto">
         
-        <!-- Theme Picker -->
-        <section class="glass p-4 rounded-xl">
-            <h2 class="text-sm font-semibold mb-2">Personalize</h2>
-            <div class="flex gap-4 items-center">
-                <div>
-                    <label for="bgColor" class="text-xs block mb-1">Background</label>
-                    <input type="color" id="bgColor" class="w-10 h-10 rounded cursor-pointer border-none p-0" value="#1a1a1a">
+        <!-- Stats Bar -->        <div class="bg-gray-800 p-4 rounded-lg mb-6 flex justify-around border border-gray-700">
+            <div class="text-center">
+                <p class="text-xs text-gray-400">Ads Watched</p>
+                <p id="ad-count" class="text-xl font-bold">0/27</p>
+            </div>
+            <div class="text-center">
+                <p class="text-xs text-gray-400">Status</p>
+                <p id="qualify-status" class="text-xs text-red-500 font-bold uppercase">Not Qualified</p>
+            </div>
+        </div>
 
-                </div>
-                <div>
-                    <label for="textColor" class="text-xs block mb-1">Text Color</label>
-                    <input type="color" id="textColor" class="w-10 h-10 rounded cursor-pointer border-none p-0" value="#ffffff">
-                </div>
+        <!-- Sections -->
+        <section id="tasks-section" class="content-section">
+            <div class="bg-gray-800 p-4 rounded-lg mb-4">
+                <h3 class="font-bold mb-2">Post Your Link</h3>
+                <input type="text" id="tg-link" placeholder="https://t.me/yourlink" class="w-full p-2 rounded bg-gray-700 mb-2 border border-gray-600 outline-none">
+                <button onclick="postLink()" id="post-btn" class="w-full bg-blue-600 p-2 rounded font-bold hover:bg-blue-700">Post (Requires 27 Ads)</button>
+                <p id="cooldown-timer" class="text-xs mt-2 text-yellow-500"></p>
+            </div>
+            <div id="links-container" class="space-y-3">
+                <!-- Links appear here -->
             </div>
         </section>
 
-        <!-- Stats & Ads Section -->
-        <section class="glass p-4 rounded-xl text-center">
-            <div class="text-3xl font-bold" id="ad-count">0 / 27</div>
-            <p class="text-xs opacity-70 mb-3">Ads watched to unlock posting</p>
-            <button onclick="watchAd()" id="watch-ad-btn" class="bg-green-600 hover:bg-green-500 px-6 py-2 rounded-lg font-bold w-full transition duration-300 ease-in-out">WATCH AD</button>
-            <p id="ad-status" class="text-xs mt-2 opacity-70">Waiting to watch ads...</p>
-        </section>
-
-        <!-- Task Section -->
-        <section id="task-section" class="space-y-4">
-            <div class="glass p-4 rounded-xl">
-                <h2 class="font-bold mb-3">Post Link (12h Cooldown)</h2>
-                <input type="text" id="task-link" placeholder="https://t.me/your_channel" class="w-full p-2 rounded bg-black/20 border border-white/20 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button onclick="submitTask()" id="btn-submit" class="w-full bg-blue-600 py-2 rounded font-bold opacity-50 cursor-not-allowed transition duration-300 ease-in-out" disabled>Submit Task</button>
-                <p id="cooldown-timer" class="text-xs mt-2 text-red-400 h-5"></p>
-            </div>
-
-            <div class="space-y-2">
-                <h2 class="font-bold">Available Tasks</h2>
-                <div id="tasks-container" class="space-y-2">
-                    <!-- Tasks injected here -->
+        <section id="chat-section" class="content-section hidden">
+            <div class="bg-gray-800 p-4 rounded-lg h-[400px] flex flex-col">
+                <div id="chat-messages" class="flex-grow overflow-y-auto mb-4 space-y-2 p-2"></div>
+                <div class="flex gap-2">
+                    <input type="text" id="chat-input" class="flex-grow p-2 rounded bg-gray-700 outline-none" placeholder="Type message...">
+                    <button onclick="sendMessage()" class="bg-blue-600 px-4 rounded">Send</button>
                 </div>
             </div>
         </section>
 
-        <!-- Users Online -->
-        <section class="glass p-4 rounded-xl">
-            <h2 class="font-bold mb-2">Online Users</h2>
-            <div id="online-users" class="flex flex-wrap gap-2 text-xs"></div>
-        </section>
-
-        <!-- Chat Section -->
-        <section class="glass p-4 rounded-xl flex flex-col h-[400px]">
-            <h2 class="font-bold mb-2">Global Chat</h2>
-            <div id="chat-box" class="flex-grow overflow-y-auto space-y-2 mb-2 p-3 bg-black/10 rounded border border-white/10">
-                <!-- Chat messages injected here -->
-            </div>
-            <div class="flex gap-2">
-                <input type="text" id="chat-input" placeholder="Type message..." class="flex-grow p-2 rounded bg-black/20 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button onclick="sendMessage()" id="send-message-btn" class="bg-blue-500 hover:bg-blue-400 px-4 py-2 rounded font-bold transition duration-300 ease-in-out">Send</button>
+        <section id="users-section" class="content-section hidden">
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-bold mb-4">Online Users</h3>
+                <ul id="user-list" class="space-y-2"></ul>
             </div>
         </section>
 
-    </main>
+        <section id="settings-section" class="content-section hidden">
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-bold mb-4">Personalization</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm mb-1">Background Color</label>
+                        <input type="color" id="bg-picker" onchange="updateColors()" class="w-full h-10 rounded cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Accent Color</label>
+                        <input type="color" id="accent-picker" onchange="updateColors()" class="w-full h-10 rounded cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Ad Trigger Button (Floating) -->
+    <button onclick="watchAdsTogether()" class="fixed bottom-20 right-4 bg-green-600 w-16 h-16 rounded-full shadow-2xl font-bold flex items-center justify-center animate-bounce border-4 border-white">
+        ADS
+    </button>
 
     <!-- Footer -->
-    <footer class="fixed bottom-0 w-full glass p-2 text-center text-xs z-50">
-        <div id="footer-date">Loading date...</div>
+    <footer class="fixed bottom-0 w-full bg-gray-900 p-3 text-center text-xs border-t border-gray-800">
+        <p id="footer-time-date"></p>
+        <p class="text-gray-500 mt-1">PAPERHOUSE INC12 © 2024</p>
     </footer>
 
     <script src="app.js"></script>
