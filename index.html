@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#080b1b" />
+  <title>Prism Duel — Platinum Card Arena</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { color-scheme: dark; --bg:#080b1b; --panel:#11162d; --line:#30395e; --muted:#aab4d4; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(ellipse at top,#20265a 0%,#0b1025 42%,#070914 100%); color:#f7f8ff; font-family:Inter,ui-sans-serif,system-ui,sans-serif; }
+    .panel { background:linear-gradient(145deg,rgba(25,33,68,.94),rgba(13,17,39,.96)); border:1px solid var(--line); border-radius:18px; box-shadow:0 12px 36px #0005; }
+    .card { position:relative; overflow:hidden; border-radius:17px; border:1px solid #c5b6ff; background:linear-gradient(135deg,#4d2b89,#142f67 45%,#087c91 70%,#5a2a83); box-shadow:0 0 18px #8b5cf677,inset 0 0 22px #ffffff22; }
+    .card:before { content:""; position:absolute; inset:-60%; background:linear-gradient(115deg,transparent 38%,#ffffff45 48%,#8df9ff35 52%,transparent 62%); transform:translateX(-60%) rotate(12deg); animation:shine 5s linear infinite; pointer-events:none; }
+    @keyframes shine { 0%,35%{transform:translateX(-65%) rotate(12deg)} 70%,100%{transform:translateX(65%) rotate(12deg)} }
+    .btn { border:1px solid #5b6593; border-radius:10px; padding:.65rem .85rem; font-weight:700; background:#20294d; transition:.15s; }
+    .btn:hover { transform:translateY(-1px); filter:brightness(1.15); }
+    .btn-primary { background:linear-gradient(100deg,#7c3aed,#2563eb); border-color:#9b8bff; }
+    .btn-good { background:linear-gradient(100deg,#047857,#0f766e); border-color:#34d399; }
+    .btn-warn { background:#4b2538; border-color:#a44d70; }
+    .muted { color:var(--muted); }
+    .field { width:100%; border:1px solid #424c75; border-radius:10px; background:#090e22; color:white; padding:.65rem .75rem; }
+    .pill { display:inline-flex; align-items:center; gap:.3rem; border:1px solid #555e8a; border-radius:999px; padding:.18rem .55rem; font-size:.75rem; color:#dbeafe; background:#172044; }
+    .stat-row { display:grid; grid-template-columns:1fr auto auto; gap:.55rem; align-items:center; padding:.5rem 0; border-bottom:1px solid #2a3152; }
+    .stat-row:last-child { border-bottom:0; }
+    .stat-btn { width:31px; height:31px; border-radius:9px; border:1px solid #5c6794; background:#20294d; font-weight:900; }
+    .navbtn { padding:.55rem .8rem; border-radius:9px; color:#c5cee9; }
+    .navbtn.active { background:#30245e; color:#fff; border:1px solid #7c6fcb; }
+    .hidden-view { display:none; }
+    .hpbar { height:8px; background:#30344f; border-radius:99px; overflow:hidden; }
+    .hpbar span { display:block; height:100%; background:linear-gradient(90deg,#34d399,#a3e635); transition:width .35s; }
+    .log { background:#090e22; border:1px solid #2e385e; border-radius:10px; padding:.65rem; max-height:180px; overflow:auto; font-size:.85rem; }
+    @media(max-width:640px){ .stat-row { grid-template-columns:1fr auto auto; } .card { min-height:210px; } }
+  </style>
+</head>
+<body>
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 py-5">
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="text-3xl">💎</div><div><h1 class="text-2xl sm:text-3xl font-black tracking-tight">PRISM <span class="text-cyan-300">DUEL</span></h1><p class="muted text-sm">Platinum Card Arena · playable prototype</p></div>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center"><span class="pill" id="connectionStatus">● Connecting to Firebase…</span><span class="pill" id="topCredits">₱10.00 demo credits</span><button class="btn" id="resetDemo">Reset demo</button></div>
+    </header>
+
+    <nav class="panel p-2 flex flex-wrap gap-1 mb-5" aria-label="Main navigation">
+      <button class="navbtn active" data-view="profile">👤 Profile & Stats</button><button class="navbtn" data-view="hunt">🐉 Monster Hunt</button><button class="navbtn" data-view="arena">⚔️ Live Arena</button><button class="navbtn" data-view="wallet">💳 Wallet Demo</button><button class="navbtn" data-view="admin">🛡️ Admin Review</button>
+    </nav>
+
+    <section id="view-profile" class="view grid lg:grid-cols-[1.05fr_.95fr] gap-5">
+      <div class="panel p-4 sm:p-6">
+        <div class="flex items-start justify-between gap-4 mb-4"><div><p class="muted text-sm">PLAYER PROFILE</p><h2 class="text-2xl font-black" id="profileHeading">Prism Rookie</h2><p class="muted text-sm">Level <span id="levelText">1</span> · <span id="recordText">0 wins / 0 losses</span></p></div><div class="card w-28 h-36 p-3 flex flex-col justify-between"><span class="text-xs font-bold">✦ LEGENDARY</span><div class="text-center text-4xl">🛡️</div><span class="text-center text-xs font-black">PRISM GUARDIAN</span></div></div>
+        <label class="text-sm muted" for="playerName">Display name</label><div class="flex gap-2 mt-1 mb-5"><input id="playerName" class="field" maxlength="24" value="Prism Rookie"/><button class="btn btn-primary" id="saveName">Save</button></div>
+        <div class="flex items-center justify-between gap-3"><div><h3 class="font-bold text-lg">Build your stats</h3><p class="muted text-sm">Allocate exactly 20 points. Changes lock during battles.</p></div><span class="pill" id="pointsBadge">20 points left</span></div>
+        <div id="statsEditor" class="mt-3"></div>
+        <div class="flex gap-2 mt-4"><button class="btn" id="resetStats">Reset allocation</button><button class="btn btn-primary" id="saveStats">Save build</button></div><p class="muted text-xs mt-3" id="statsMessage" aria-live="polite">Choose a strategy that fits your play style.</p>
+      </div>
+      <div class="space-y-5">
+        <div class="panel p-5"><h3 class="font-bold text-lg mb-3">⚡ Battle-ready summary</h3><div class="grid grid-cols-2 gap-3" id="statSummary"></div><p class="muted text-xs mt-3">Prototype balance rules: base health 20, base damage 0. Speed determines turn priority; defence reduces incoming damage.</p></div>
+        <div class="panel p-5"><h3 class="font-bold text-lg mb-2">How stat points work</h3><ul class="list-disc pl-5 space-y-1 text-sm muted"><li>Health: +20 maximum HP per point.</li><li>Damage: +4 attack per point.</li><li>Speed: +3% initiative per point.</li><li>Critical: +2% critical chance per point, capped at 60%.</li><li>Defence: +10 defence per point; damage reduction uses 10% of defence.</li><li>Regeneration: +3 HP each turn, capped at maximum health.</li></ul></div>
+      </div>
+    </section>
+
+    <section id="view-hunt" class="view hidden-view grid lg:grid-cols-[.9fr_1.1fr] gap-5">
+      <div class="panel p-5"><p class="muted text-sm">PVE · MONSTER HUNT</p><h2 class="text-2xl font-black mb-1">Find your next rival</h2><p class="muted text-sm mb-4">Search by name or rank. Monster strength scales around your current build.</p><input class="field mb-3" id="monsterSearch" placeholder="Search: Golem, Wraith, Dragon…"/><div class="grid grid-cols-3 gap-2 mb-4"><button class="btn difficulty active" data-diff="easy">Easy<br><small>3% reward</small></button><button class="btn difficulty" data-diff="medium">Medium<br><small>5% reward</small></button><button class="btn difficulty" data-diff="hard">Hard<br><small>7% reward</small></button></div><div id="monsterResults" class="space-y-3"></div></div>
+      <div class="panel p-5"><div class="flex justify-between items-center gap-3"><div><p class="muted text-sm">TURN-BASED CARD COMBAT</p><h2 class="text-xl font-black">Battle monitor</h2></div><span class="pill" id="fightState">Awaiting monster</span></div><div id="battleCards" class="grid sm:grid-cols-2 gap-3 mt-4"><div class="card p-4 min-h-48"><p class="text-xs font-bold">YOUR CARD</p><div class="text-5xl text-center my-5">🛡️</div><p class="font-black text-center" id="heroCardName">Prism Rookie</p><p class="text-xs text-center">Ready for battle</p></div><div class="card p-4 min-h-48"><p class="text-xs font-bold">MONSTER CARD</p><div class="text-5xl text-center my-5">❔</div><p class="font-black text-center">Unknown challenger</p><p class="text-xs text-center">Search and select a monster</p></div></div><div class="flex gap-2 mt-4"><button class="btn btn-primary" id="fightBtn" disabled>⚔️ Fight</button><button class="btn" id="escapeBtn" disabled>🏃 Escape</button><button class="btn" id="cancelBtn" disabled>✖ Cancel</button></div><div class="log mt-4" id="battleLog" aria-live="polite">Battle log: choose a monster to begin.</div></div>
+    </section>
+
+    <section id="view-arena" class="view hidden-view">
+      <div class="panel p-5 mb-5"><div class="flex flex-col md:flex-row md:items-center justify-between gap-3"><div><p class="muted text-sm">PVP · REAL PLAYERS ONLY</p><h2 class="text-2xl font-black">Live Battle Arena</h2><p class="muted text-sm">Human players only — no AI opponents. Every zero-bet seat can be refreshed; active-bet seats are locked.</p></div><button class="btn" id="refreshQueues">↻ Refresh eligible queues</button></div><div class="grid md:grid-cols-3 gap-3 mt-4" id="leagueCards"></div><p class="text-xs muted mt-3">Matching rule: opponents must be within ±5 total stat points. Each difficulty shows up to 10 waiting seats. This preview uses local demo queues; production live-player matching requires trusted server logic.</p></div>
+      <div class="panel p-5"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h3 class="font-bold text-lg">Waiting seats <span class="pill" id="queueCount">0 / 30</span></h3><p class="muted text-sm">Maximum 10 waiting entries per difficulty.</p></div><div class="flex flex-wrap gap-2"><select class="field" id="arenaLeague"><option value="newbie">Newbie</option><option value="master">Master</option><option value="pro">Pro</option></select><button class="btn btn-primary" id="joinQueue">Take a seat</button><button class="btn" id="leaveQueue">Leave queue</button></div></div><div id="queueList" class="grid md:grid-cols-2 xl:grid-cols-3 gap-3 mt-4"></div><div id="arenaMessage" class="muted text-sm mt-3" aria-live="polite">Join a seat as a human player. Refresh removes zero-bet seats, including your own; active-bet seats are preserved. No AI entries or fake opponents are generated.</div></div>
+    </section>
+
+    <section id="view-wallet" class="view hidden-view grid lg:grid-cols-2 gap-5">
+      <div class="panel p-5"><p class="muted text-sm">WALLET · DEMO ONLY</p><h2 class="text-2xl font-black">Credits & requests</h2><div class="card p-4 mt-4 mb-4"><p class="text-xs font-bold">DEMO BALANCE</p><p class="text-3xl font-black mt-1" id="walletBalance">₱10.00</p><p class="text-xs mt-1">This prototype does not move money or connect to GCash.</p></div><div class="space-y-3"><div><label class="text-sm muted" for="depositName">Account name</label><input class="field mt-1" id="depositName" placeholder="Name shown on payment"/></div><div><label class="text-sm muted" for="depositAmount">Deposit amount (PHP)</label><input class="field mt-1" id="depositAmount" type="number" min="10" step="1" value="20"/></div><div><label class="text-sm muted" for="depositProof">Proof reference / screenshot filename</label><input class="field mt-1" id="depositProof" placeholder="Reference number or uploaded proof name"/></div><button class="btn btn-primary w-full" id="submitDeposit">Submit deposit request</button><hr class="border-slate-700"/><div><label class="text-sm muted" for="withdrawAmount">Withdrawal amount (PHP)</label><input class="field mt-1" id="withdrawAmount" type="number" min="10" step="1" value="10"/></div><div><label class="text-sm muted" for="gcashName">GCash account name</label><input class="field mt-1" id="gcashName" placeholder="Account holder name"/></div><div><label class="text-sm muted" for="gcashNumber">GCash number</label><input class="field mt-1" id="gcashNumber" inputmode="numeric" placeholder="09xxxxxxxxx"/></div><button class="btn btn-good w-full" id="submitWithdraw">Submit withdrawal request</button><p class="text-xs muted">Demo requests only. Real-money features require legal review, verified payments, fraud controls, and secure server-side approval.</p></div></div>
+      <div class="panel p-5"><h3 class="font-bold text-lg">Request history</h3><p class="muted text-sm mb-3">Requests appear here with amount, date, proof, and review status.</p><div id="walletHistory" class="space-y-3"></div><div class="mt-4 rounded-xl border border-amber-700/50 bg-amber-950/30 p-3 text-sm text-amber-100"><strong>Before launch:</strong> Do not collect deposits into a personal number from a client-side prototype. Use a properly registered payment provider and confirm applicable Philippine gaming, payment, tax, and consumer rules with qualified counsel.</div></div>
+    </section>
+
+    <section id="view-admin" class="view hidden-view grid lg:grid-cols-[.7fr_1.3fr] gap-5">
+      <div class="panel p-5"><p class="muted text-sm">ADMIN TOOLS</p><h2 class="text-2xl font-black">Review requests</h2><p class="muted text-sm mt-2">The prototype intentionally has no built-in admin password. Authentication and approvals must be enforced by a backend, not trusted to browser JavaScript.</p><div class="mt-4"><label class="text-sm muted" for="adminToken">Demo reviewer label</label><input id="adminToken" class="field mt-1" placeholder="e.g. Admin reviewer"/></div><button id="adminUnlock" class="btn btn-primary mt-3">Open demo review panel</button><p class="muted text-xs mt-3" id="adminStatus">Requests below are local demo records only.</p></div>
+      <div class="panel p-5"><div class="flex items-center justify-between"><h3 class="font-bold text-lg">Pending deposits & withdrawals</h3><span class="pill" id="pendingCount">0 pending</span></div><div id="adminRequests" class="space-y-3 mt-4"></div></div>
+    </section>
+
+    <footer class="text-center text-xs muted mt-8 pb-5">Prism Duel is a front-end prototype. User accounts, live matchmaking, payments, persistence, anti-cheat, and admin permissions are not production-connected.</footer>
+  </div>
+  <!-- Firebase compat SDKs. Enable Anonymous Authentication in Firebase Console. -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
