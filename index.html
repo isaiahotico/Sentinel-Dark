@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA DUELISTS - Platinum Holographic Shining Card Duel</title>
+  <!-- Tailwind CSS & FontAwesome CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    /* Holographic Platinum Prism Animations */
+    @keyframes rainbowGlow {
+      0% { background-position: 0% 50%; filter: drop-shadow(0 0 14px rgba(244, 114, 182, 0.5)); }
+      50% { background-position: 100% 50%; filter: drop-shadow(0 0 28px rgba(56, 189, 248, 0.8)); }
+      100% { background-position: 0% 50%; filter: drop-shadow(0 0 14px rgba(168, 85, 247, 0.5)); }
+    }
+
+    @keyframes platinumShimmer {
+      0% { background-position: -250% 0; }
+      100% { background-position: 250% 0; }
+    }
+
+    @keyframes neonBorderPulse {
+      0%, 100% { box-shadow: 0 0 15px rgba(236, 72, 153, 0.6), 0 0 30px rgba(56, 189, 248, 0.4); }
+      50% { box-shadow: 0 0 32px rgba(168, 85, 247, 0.85), 0 0 50px rgba(251, 191, 36, 0.6); }
+    }
+
+    .holo-rainbow-border {
+      background: linear-gradient(135deg, #ff007f, #8b5cf6, #06b6d4, #10b981, #eab308, #ff007f);
+      background-size: 350% 350%;
+      animation: rainbowGlow 5s ease infinite;
+    }
+
+    .platinum-card-shimmer {
+      position: relative;
+      overflow: hidden;
+      animation: neonBorderPulse 3.5s infinite alternate;
+    }
+
+    .platinum-card-shimmer::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.25) 40%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0.25) 60%, transparent 80%);
+      background-size: 250% 100%;
+      animation: platinumShimmer 3.8s infinite linear;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      border-radius: inherit;
+    }
+
+    /* Fast Strike Animation Classes */
+    .card-lunge-right { animation: lungeRight 0.35s ease-in-out; }
+    .card-lunge-left { animation: lungeLeft 0.35s ease-in-out; }
+    .card-impact-shake { animation: impactShake 0.35s ease-in-out; }
+
+    @keyframes lungeRight {
+      0% { transform: translateX(0) scale(1); }
+      50% { transform: translateX(65px) scale(1.08) rotate(3deg); }
+      100% { transform: translateX(0) scale(1); }
+    }
+
+    @keyframes lungeLeft {
+      0% { transform: translateX(0) scale(1); }
+      50% { transform: translateX(-65px) scale(1.08) rotate(-3deg); }
+      100% { transform: translateX(0) scale(1); }
+    }
+
+    @keyframes impactShake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-10px, 8px) scale(0.97); }
+      40% { transform: translate(10px, -8px); }
+      60% { transform: translate(-8px, -4px); }
+      80% { transform: translate(8px, 4px); }
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #060913; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col selection:bg-fuchsia-500 selection:text-white">
+
+  <!-- TOP HEADER / NAVBAR -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50 px-4 py-2.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl holo-rainbow-border p-[2px] flex items-center justify-center shadow-lg">
+          <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-fuchsia-400 font-black text-xl">
+            <i class="fa-solid fa-khanda"></i>
+          </div>
+        </div>
+        <div>
+          <h1 class="text-xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-purple-300 to-cyan-400">
+            AURA DUELISTS
+          </h1>
+          <p class="text-[10px] text-slate-400 tracking-tight font-mono">Platinum Shining Card Battles</p>
+        </div>
+      </div>
+
+      <!-- Wallet Bar & Metrics -->
+      <div class="flex items-center gap-2.5 text-xs sm:text-sm">
+        
+        <!-- GCash Wallet Balance (User Starts at 10 Peso) -->
+        <div class="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-inner">
+          <i class="fa-solid fa-wallet text-emerald-400"></i>
+          <span class="text-slate-400 hidden sm:inline">Balance:</span>
+          <span id="navBalance" class="font-bold text-emerald-300 font-mono">₱10.00</span>
+          <button onclick="openWalletModal()" class="ml-1 bg-emerald-600 hover:bg-emerald-500 px-2 py-0.5 rounded text-[11px] font-bold text-white transition flex items-center gap-1">
+            <i class="fa-solid fa-plus text-[9px]"></i> GCash
+          </button>
+        </div>
+
+        <!-- Total Stats Metrics -->
+        <div class="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2">
+          <i class="fa-solid fa-chart-simple text-purple-400"></i>
+          <span class="text-slate-400 hidden sm:inline">Stats:</span>
+          <span id="navTotalStats" class="font-bold text-purple-300 font-mono">20</span>
+        </div>
+
+        <!-- Admin Access Button -->
+        <button onclick="openAdminModal()" class="text-slate-400 hover:text-slate-200 text-xs px-2.5 py-1.5 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-shield-halved text-amber-400"></i>
+          <span class="hidden sm:inline">Admin</span>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2">
+    <div class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto">
+      <button onclick="switchTab('profile')" id="tabBtn-profile" class="tab-btn px-4 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white shadow-lg shadow-fuchsia-950">
+        <i class="fa-solid fa-user-ninja"></i> Profile & Strategy
+      </button>
+      <button onclick="switchTab('battlefield')" id="tabBtn-battlefield" class="tab-btn px-4 py-2 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition">
+        <i class="fa-solid fa-skull"></i> PVE Field (Earn Stats)
+      </button>
+      <button onclick="switchTab('arena')" id="tabBtn-arena" class="tab-btn px-4 py-2 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition">
+        <i class="fa-solid fa-trophy"></i> Battle Arena (PVP)
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="max-w-7xl mx-auto p-4 flex-1 w-full">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: PROFILE & STATS STRATEGY MATRIX     -->
+    <!-- ========================================== -->
+    <div id="tab-profile" class="tab-content block">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Player Card Visual (Platinum Shining Holographic) -->
+        <div class="lg:col-span-5 flex flex-col items-center">
+          <div class="w-full max-w-sm holo-rainbow-border p-[3px] rounded-2xl shadow-2xl relative">
+            <div class="bg-slate-950 rounded-[14px] p-5 flex flex-col h-full relative overflow-hidden platinum-card-shimmer">
+              
+              <!-- Ambient Lights -->
+              <div class="absolute -right-16 -top-16 w-48 h-48 bg-fuchsia-500/25 rounded-full blur-3xl pointer-events-none"></div>
+              <div class="absolute -left-16 -bottom-16 w-48 h-48 bg-cyan-500/25 rounded-full blur-3xl pointer-events-none"></div>
+
+              <!-- Top Info Bar -->
+              <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                <div class="flex items-center gap-2">
+                  <span id="playerRankBadge" class="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-wider">
+                    NEWBIE TIER
+                  </span>
+                  <span id="cardPlayerStatsSum" class="text-xs text-slate-400 font-mono">Allocated: 20 / 20</span>
+                </div>
+                <div class="text-xs font-mono text-cyan-400 flex items-center gap-1">
+                  <i class="fa-solid fa-bolt"></i> <span id="cardPlayerSpeedDisp">10% SPD</span>
+                </div>
+              </div>
+
+              <!-- Avatar Graphic Box -->
+              <div class="relative w-full h-48 rounded-xl bg-gradient-to-b from-slate-800 via-indigo-950 to-slate-900 border border-slate-700/60 flex items-center justify-center overflow-hidden group">
+                <i class="fa-solid fa-dragon text-7xl text-cyan-300 drop-shadow-[0_0_25px_rgba(56,189,248,0.85)] transition transform group-hover:scale-110 duration-300"></i>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
+                
+                <div class="absolute bottom-2 left-3 right-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span id="playerAvatarName" class="font-extrabold text-base text-white tracking-wide drop-shadow">AuraKnight</span>
+                    <button onclick="editPlayerName()" class="text-slate-400 hover:text-cyan-300 text-xs" title="Change Avatar Name">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                  </div>
+                  <span class="text-[11px] font-mono text-purple-300 bg-purple-900/40 px-2 py-0.5 rounded border border-purple-700/50">
+                    LVL <span id="playerCardLvl">1</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Calculated Stat Grid -->
+              <div class="grid grid-cols-2 gap-2 mt-4 text-xs font-medium">
+                <div class="bg-slate-900/90 border border-red-900/40 p-2.5 rounded-lg flex items-center justify-between">
+                  <span class="text-red-400 flex items-center gap-1.5"><i class="fa-solid fa-heart"></i> Health</span>
+                  <span id="cardHp" class="font-bold text-red-200 font-mono">100 HP</span>
+                </div>
+                <div class="bg-slate-900/90 border border-amber-900/40 p-2.5 rounded-lg flex items-center justify-between">
+                  <span class="text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-hand-fist"></i> Damage</span>
+                  <span id="cardDmg" class="font-bold text-amber-200 font-mono">10 DMG</span>
+                </div>
+                <div class="bg-slate-900/90 border border-blue-900/40 p-2.5 rounded-lg flex items-center justify-between">
+                  <span class="text-blue-400 flex items-center gap-1.5"><i class="fa-solid fa-shield-halved"></i> Defence</span>
+                  <span id="cardDef" class="font-bold text-blue-200 font-mono">0 DEF</span>
+                </div>
+                <div class="bg-slate-900/90 border border-emerald-900/40 p-2.5 rounded-lg flex items-center justify-between">
+                  <span class="text-emerald-400 flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> Regen</span>
+                  <span id="cardRegen" class="font-bold text-emerald-200 font-mono">0 / Turn</span>
+                </div>
+                <div class="bg-slate-900/90 border border-yellow-900/40 p-2.5 rounded-lg flex items-center justify-between">
+                  <span class="text-yellow-400 flex items-center gap-1.5"><i class="fa-solid fa-burst"></i> Critical</span>
+                  <span id="cardCrit" class="font-bold text-yellow-200 font-mono">5.0%</span>
+                </div>
+                <div class="bg-slate-900/90 border border-cyan-900/40 p-2.5 rounded-lg flex items-center justify-between">
+                  <span class="text-cyan-400 flex items-center gap-1.5"><i class="fa-solid fa-gauge-high"></i> Speed</span>
+                  <span id="cardSpeed" class="font-bold text-cyan-200 font-mono">10.0%</span>
+                </div>
+              </div>
+
+              <!-- Foil Card Footer -->
+              <div class="mt-4 pt-3 border-t border-slate-800 text-center">
+                <p class="text-[10px] uppercase tracking-widest text-slate-400 font-mono">
+                  ★ PLATINUM HOLOGRAPHIC DUEL CARD ★
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive 20-Point Stat Allocator -->
+        <div class="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+          <div>
+            <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-2">
+              <div>
+                <h2 class="text-lg font-black text-white flex items-center gap-2">
+                  <i class="fa-solid fa-sliders text-fuchsia-400"></i> Attribute Tuning & Strategy
+                </h2>
+                <p class="text-xs text-slate-400">
+                  You have <span class="font-bold text-cyan-300">20 base stat points</span> to allocate. Modify anytime using + and - buttons!
+                </p>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <div class="text-right">
+                  <div class="text-[11px] text-slate-400">Unallocated Pool</div>
+                  <div class="text-xl font-black text-cyan-300 font-mono" id="unallocatedDisplay">0</div>
+                </div>
+                <button onclick="resetStats()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 font-semibold transition flex items-center gap-1">
+                  <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+              </div>
+            </div>
+
+            <!-- Attribute Input Rows -->
+            <div class="space-y-3">
+              
+              <!-- Health Row (+20 HP/point) -->
+              <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 w-44">
+                  <div class="w-8 h-8 rounded-lg bg-red-950/80 border border-red-800/50 text-red-400 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-heart"></i>
+                  </div>
+                  <div>
+                    <div class="font-bold text-sm text-slate-200">Health</div>
+                    <div class="text-[10px] text-slate-400">+20 HP / point</div>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                  <span class="text-xs font-mono text-red-400 font-bold" id="calcHpTotal">100 HP</span>
+                  <span class="text-[10px] text-slate-400 block font-mono" id="calcHpFormula">Base 100 + (0 × 20)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="modifyStat('health', -1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-black transition">-</button>
+                  <span id="statPoints-health" class="w-8 text-center font-bold font-mono text-sm text-white">0</span>
+                  <button onclick="modifyStat('health', 1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black transition">+</button>
+                </div>
+              </div>
+
+              <!-- Damage Row (+4 DMG/point) -->
+              <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 w-44">
+                  <div class="w-8 h-8 rounded-lg bg-amber-950/80 border border-amber-800/50 text-amber-400 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-hand-fist"></i>
+                  </div>
+                  <div>
+                    <div class="font-bold text-sm text-slate-200">Damage</div>
+                    <div class="text-[10px] text-slate-400">+4 DMG / point</div>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                  <span class="text-xs font-mono text-amber-400 font-bold" id="calcDmgTotal">10 DMG</span>
+                  <span class="text-[10px] text-slate-400 block font-mono" id="calcDmgFormula">Base 10 + (0 × 4)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="modifyStat('damage', -1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-black transition">-</button>
+                  <span id="statPoints-damage" class="w-8 text-center font-bold font-mono text-sm text-white">0</span>
+                  <button onclick="modifyStat('damage', 1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black transition">+</button>
+                </div>
+              </div>
+
+              <!-- Speed Row (+3% SPD/point) -->
+              <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 w-44">
+                  <div class="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-800/50 text-cyan-400 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-gauge-high"></i>
+                  </div>
+                  <div>
+                    <div class="font-bold text-sm text-slate-200">Speed</div>
+                    <div class="text-[10px] text-slate-400">+3% SPD / point</div>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                  <span class="text-xs font-mono text-cyan-400 font-bold" id="calcSpeedTotal">10.0%</span>
+                  <span class="text-[10px] text-slate-400 block font-mono" id="calcSpeedFormula">Base 10% + (0 × 3%)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="modifyStat('speed', -1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-black transition">-</button>
+                  <span id="statPoints-speed" class="w-8 text-center font-bold font-mono text-sm text-white">0</span>
+                  <button onclick="modifyStat('speed', 1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black transition">+</button>
+                </div>
+              </div>
+
+              <!-- Critical Row (+2% CRIT/point) -->
+              <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 w-44">
+                  <div class="w-8 h-8 rounded-lg bg-yellow-950/80 border border-yellow-800/50 text-yellow-400 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-burst"></i>
+                  </div>
+                  <div>
+                    <div class="font-bold text-sm text-slate-200">Critical</div>
+                    <div class="text-[10px] text-slate-400">+2% CRIT / point</div>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                  <span class="text-xs font-mono text-yellow-400 font-bold" id="calcCritTotal">5.0%</span>
+                  <span class="text-[10px] text-slate-400 block font-mono" id="calcCritFormula">Base 5% + (0 × 2%)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="modifyStat('critical', -1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-black transition">-</button>
+                  <span id="statPoints-critical" class="w-8 text-center font-bold font-mono text-sm text-white">0</span>
+                  <button onclick="modifyStat('critical', 1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black transition">+</button>
+                </div>
+              </div>
+
+              <!-- Defence Row (+10 DEF/point) -->
+              <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 w-44">
+                  <div class="w-8 h-8 rounded-lg bg-blue-950/80 border border-blue-800/50 text-blue-400 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-shield-halved"></i>
+                  </div>
+                  <div>
+                    <div class="font-bold text-sm text-slate-200">Defence</div>
+                    <div class="text-[10px] text-slate-400">+10 DEF / point</div>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                  <span class="text-xs font-mono text-blue-400 font-bold" id="calcDefTotal">0 DEF</span>
+                  <span class="text-[10px] text-slate-400 block font-mono" id="calcDefFormula">Base 0 + (0 × 10)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="modifyStat('defence', -1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-black transition">-</button>
+                  <span id="statPoints-defence" class="w-8 text-center font-bold font-mono text-sm text-white">0</span>
+                  <button onclick="modifyStat('defence', 1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black transition">+</button>
+                </div>
+              </div>
+
+              <!-- Regeneration Row (+3 REGEN/point) -->
+              <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 w-44">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-950/80 border border-emerald-800/50 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                  </div>
+                  <div>
+                    <div class="font-bold text-sm text-slate-200">Regeneration</div>
+                    <div class="text-[10px] text-slate-400">+3 REGEN / point</div>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                  <span class="text-xs font-mono text-emerald-400 font-bold" id="calcRegenTotal">0 / turn</span>
+                  <span class="text-[10px] text-slate-400 block font-mono" id="calcRegenFormula">Base 0 + (0 × 3)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="modifyStat('regeneration', -1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-black transition">-</button>
+                  <span id="statPoints-regeneration" class="w-8 text-center font-bold font-mono text-sm text-white">0</span>
+                  <button onclick="modifyStat('regeneration', 1)" class="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black transition">+</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+            <span><i class="fa-solid fa-circle-info text-cyan-400"></i> Stats auto-saved and applied across PVE and Arena PVP.</span>
+            <span class="text-emerald-400 font-bold">Auto-Saved</span>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 2: PVE BATTLE FIELD (SEARCH & FIGHT)   -->
+    <!-- ========================================== -->
+    <div id="tab-battlefield" class="tab-content hidden space-y-6">
+      
+      <!-- Zone Selector Bar -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Easy / QQ -->
+        <div onclick="selectZone('easy')" id="zoneCard-easy" class="cursor-pointer border-2 border-emerald-500/80 bg-slate-900/90 rounded-2xl p-4 transition relative overflow-hidden shadow-lg hover:border-emerald-400">
+          <div class="flex justify-between items-start mb-2">
+            <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold px-2 py-0.5 rounded">
+              EASY ZONE (QQ)
+            </span>
+            <span class="text-xs font-mono text-emerald-400 font-bold">3% Stat Drop</span>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1">Whispering Crypts</h3>
+          <p class="text-xs text-slate-400">Low to modest stats, level is sometimes low and not so hard to defeat. High armor tanks are strongest.</p>
+        </div>
+
+        <!-- Medium -->
+        <div onclick="selectZone('medium')" id="zoneCard-medium" class="cursor-pointer border border-slate-800 bg-slate-900/60 rounded-2xl p-4 transition relative overflow-hidden shadow-lg hover:border-amber-400">
+          <div class="flex justify-between items-start mb-2">
+            <span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold px-2 py-0.5 rounded">
+              MEDIUM ZONE
+            </span>
+            <span class="text-xs font-mono text-amber-400 font-bold">5% Stat Drop</span>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1">Volcanic Spire</h3>
+          <p class="text-xs text-slate-400">Level scales dynamically with your current stats. Aggressive monsters focused on strong attack & critical.</p>
+        </div>
+
+        <!-- Hard -->
+        <div onclick="selectZone('hard')" id="zoneCard-hard" class="cursor-pointer border border-slate-800 bg-slate-900/60 rounded-2xl p-4 transition relative overflow-hidden shadow-lg hover:border-red-400">
+          <div class="flex justify-between items-start mb-2">
+            <span class="bg-red-500/20 text-red-300 border border-red-500/40 text-[11px] font-bold px-2 py-0.5 rounded">
+              HARD ZONE
+            </span>
+            <span class="text-xs font-mono text-red-400 font-bold">7% Stat Drop</span>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1">Abyssal Fortress</h3>
+          <p class="text-xs text-slate-400">Level scales to your stats. Colossal monsters with high regeneration, fortified defence, and heavy damage.</p>
+        </div>
+      </div>
+
+      <!-- Search Radar & Encounter Stage -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl min-h-[480px] flex flex-col justify-center items-center relative overflow-hidden">
+        
+        <!-- IDLE / SEARCH PROMPT -->
+        <div id="pveIdleState" class="text-center max-w-md py-12">
+          <div class="w-24 h-24 mx-auto rounded-full bg-slate-800/80 border-2 border-dashed border-slate-600 flex items-center justify-center text-slate-400 text-3xl mb-4 animate-pulse">
+            <i class="fa-solid fa-radar"></i>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2">Uncharted Wild Territory</h3>
+          <p class="text-xs text-slate-400 mb-6">Scan for roaming enemies. Defeating monsters gives a chance to permanently gain +1 Stat Point (3%, 5%, or 7%)!</p>
+          <button onclick="searchMonster()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-bold tracking-wide shadow-lg shadow-fuchsia-950/60 transition transform hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto">
+            <i class="fa-solid fa-magnifying-glass"></i> Search Battlefield
+          </button>
+        </div>
+
+        <!-- SEARCHING SPINNER -->
+        <div id="pveSearchingState" class="hidden text-center py-16">
+          <div class="relative w-20 h-20 mx-auto mb-4">
+            <div class="w-full h-full rounded-full border-4 border-fuchsia-500/20 border-t-fuchsia-500 animate-spin"></div>
+            <i class="fa-solid fa-crosshairs absolute inset-0 m-auto text-xl text-fuchsia-400 flex items-center justify-center"></i>
+          </div>
+          <h4 class="text-base font-bold text-cyan-300 animate-pulse">Scanning Bio-Signatures...</h4>
+          <p class="text-xs text-slate-400 mt-1">Calibrating monster level against your total stats</p>
+        </div>
+
+        <!-- MONSTER FOUND / ENCOUNTER STAGE -->
+        <div id="pveFoundState" class="hidden w-full max-w-xl">
+          <div class="text-center mb-4">
+            <span class="bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1.5 animate-bounce">
+              <i class="fa-solid fa-triangle-exclamation"></i> Hostile Discovered!
+            </span>
+          </div>
+
+          <!-- Found Monster Card (Platinum Foil) -->
+          <div class="holo-rainbow-border p-[3px] rounded-2xl shadow-2xl">
+            <div class="bg-slate-950 rounded-[14px] p-5 platinum-card-shimmer relative overflow-hidden">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                <span id="encounterZoneTag" class="text-xs font-bold text-amber-400">ZONE: MEDIUM</span>
+                <span id="encounterDropTag" class="text-xs font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">
+                  Drop Rate: 5% Stat
+                </span>
+              </div>
+
+              <div class="flex flex-col sm:flex-row gap-5 items-center">
+                <!-- Monster Avatar -->
+                <div class="w-36 h-36 rounded-xl bg-gradient-to-b from-slate-800 to-red-950/60 border border-red-500/40 flex items-center justify-center shrink-0 shadow-inner relative overflow-hidden">
+                  <i id="encounterIcon" class="fa-solid fa-spaghetti-monster-flying text-6xl text-red-400 drop-shadow-[0_0_20px_rgba(239,68,68,0.85)]"></i>
+                </div>
+
+                <!-- Monster Spec Details -->
+                <div class="flex-1 w-full space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h3 id="encounterName" class="text-lg font-black text-white">Obsidian Golem</h3>
+                      <span id="encounterLevelBadge" class="text-[10px] text-cyan-400 font-mono">Level: 20</span>
+                    </div>
+                    <span id="encounterClass" class="text-xs font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">High Armor</span>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                    <div class="bg-slate-900 p-1.5 rounded border border-slate-800 flex justify-between">
+                      <span class="text-red-400"><i class="fa-solid fa-heart"></i> HP:</span>
+                      <span id="encounterHp" class="font-bold text-white">180</span>
+                    </div>
+                    <div class="bg-slate-900 p-1.5 rounded border border-slate-800 flex justify-between">
+                      <span class="text-amber-400"><i class="fa-solid fa-hand-fist"></i> ATK:</span>
+                      <span id="encounterDmg" class="font-bold text-white">18</span>
+                    </div>
+                    <div class="bg-slate-900 p-1.5 rounded border border-slate-800 flex justify-between">
+                      <span class="text-blue-400"><i class="fa-solid fa-shield-halved"></i> DEF:</span>
+                      <span id="encounterDef" class="font-bold text-white">40</span>
+                    </div>
+                    <div class="bg-slate-900 p-1.5 rounded border border-slate-800 flex justify-between">
+                      <span class="text-emerald-400"><i class="fa-solid fa-wand-magic-sparkles"></i> REG:</span>
+                      <span id="encounterRegen" class="font-bold text-white">4</span>
+                    </div>
+                    <div class="bg-slate-900 p-1.5 rounded border border-slate-800 flex justify-between">
+                      <span class="text-yellow-400"><i class="fa-solid fa-burst"></i> CRT:</span>
+                      <span id="encounterCrit" class="font-bold text-white">8%</span>
+                    </div>
+                    <div class="bg-slate-900 p-1.5 rounded border border-slate-800 flex justify-between">
+                      <span class="text-cyan-400"><i class="fa-solid fa-gauge-high"></i> SPD:</span>
+                      <span id="encounterSpeed" class="font-bold text-white">12%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Control Buttons: Fight, Escape, Cancel -->
+              <div class="mt-5 pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button onclick="cancelSearch()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition">
+                  Cancel
+                </button>
+                <button onclick="escapeBattle()" class="px-4 py-2 rounded-lg bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-600/50 text-xs font-bold transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-person-running"></i> Escape
+                </button>
+                <button onclick="startCombat()" class="px-5 py-2 rounded-lg bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white text-xs font-black uppercase tracking-wider transition shadow-lg shadow-red-950 flex items-center gap-1.5">
+                  <i class="fa-solid fa-swords"></i> Fight!
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIVE COMBAT ARENA (AUTO DUEL ANIMATED MONITOR) -->
+        <div id="pveCombatStage" class="hidden w-full max-w-4xl space-y-4">
+          <div class="flex items-center justify-between bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800">
+            <span class="text-xs font-mono text-cyan-400 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+              COMBAT ENGAGED • SPEED & TURN BASED CLASH
+            </span>
+            <span id="combatTurnCounter" class="text-xs font-bold text-slate-400 font-mono">Turn 1</span>
+          </div>
+
+          <!-- Cards Clash Stage -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            
+            <!-- Player Battler Card -->
+            <div id="battleCardPlayer" class="holo-rainbow-border p-[2px] rounded-2xl transition duration-200">
+              <div class="bg-slate-950 rounded-[14px] p-4 relative platinum-card-shimmer overflow-hidden">
+                <div class="flex justify-between items-center mb-2">
+                  <span id="battlePlayerName" class="font-extrabold text-sm text-cyan-300">AuraKnight</span>
+                  <span class="text-[11px] font-mono text-slate-400">PLAYER</span>
+                </div>
+                <!-- Health Bar -->
+                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden mb-1 relative">
+                  <div id="battlePlayerHpBar" class="bg-gradient-to-r from-red-600 to-emerald-500 h-full w-full transition-all duration-300"></div>
+                </div>
+                <div class="flex justify-between text-[11px] font-mono text-slate-400 mb-3">
+                  <span id="battlePlayerHpText">100 / 100 HP</span>
+                  <span id="battlePlayerStatus">Ready</span>
+                </div>
+                <div class="h-28 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-5xl text-cyan-400 drop-shadow-[0_0_15px_rgba(56,189,248,0.8)]">
+                  <i class="fa-solid fa-dragon"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Opponent / Monster Battler Card -->
+            <div id="battleCardEnemy" class="holo-rainbow-border p-[2px] rounded-2xl transition duration-200">
+              <div class="bg-slate-950 rounded-[14px] p-4 relative platinum-card-shimmer overflow-hidden">
+                <div class="flex justify-between items-center mb-2">
+                  <span id="battleEnemyName" class="font-extrabold text-sm text-red-400">Monster</span>
+                  <span class="text-[11px] font-mono text-slate-400" id="battleEnemyTierBadge">WILD</span>
+                </div>
+                <!-- Health Bar -->
+                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden mb-1 relative">
+                  <div id="battleEnemyHpBar" class="bg-gradient-to-r from-red-600 to-amber-500 h-full w-full transition-all duration-300"></div>
+                </div>
+                <div class="flex justify-between text-[11px] font-mono text-slate-400 mb-3">
+                  <span id="battleEnemyHpText">100 / 100 HP</span>
+                  <span id="battleEnemyStatus">Enraged</span>
+                </div>
+                <div class="h-28 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-5xl text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]">
+                  <i id="battleEnemyAvatarIcon" class="fa-solid fa-spaghetti-monster-flying"></i>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Combat Log Monitor -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 h-36 overflow-y-auto font-mono text-xs space-y-1.5" id="combatLog">
+            <div class="text-slate-500">>>> System initialized. Battle commencing...</div>
+          </div>
+
+          <!-- Combat Complete Overlay -->
+          <div id="combatResultOverlay" class="hidden bg-slate-900/90 border border-slate-700 p-4 rounded-xl text-center space-y-2">
+            <h4 id="combatResultTitle" class="text-lg font-black text-white">VICTORY</h4>
+            <p id="combatResultSub" class="text-xs text-slate-300">Reward calculated</p>
+            <div id="combatRewardBox" class="text-sm font-bold text-amber-400 py-1"></div>
+            <button onclick="closeCombatResult()" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition">
+              Back to Field
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 3: PVP BATTLE ARENA (10 QUEUE SEATS)   -->
+    <!-- ========================================== -->
+    <div id="tab-arena" class="tab-content hidden space-y-6">
+
+      <!-- Arena Tier Selector -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Newbie Tier -->
+        <div onclick="selectArenaTier('newbie')" id="arenaTierBtn-newbie" class="cursor-pointer border-2 border-cyan-500 bg-slate-900/80 rounded-2xl p-4 transition shadow-lg">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs font-bold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/60">NEWBIE ARENA</span>
+            <span class="text-[11px] text-slate-400 font-mono">0 Tax</span>
+          </div>
+          <h3 class="text-sm font-black text-white">Max 100 Stats Limit</h3>
+          <p class="text-xs text-slate-400 mt-1">Wager Limit: ₱0 – ₱10 Max. Friendly training & low stakes clash.</p>
+        </div>
+
+        <!-- Master Tier -->
+        <div onclick="selectArenaTier('master')" id="arenaTierBtn-master" class="cursor-pointer border border-slate-800 bg-slate-900/60 rounded-2xl p-4 transition shadow-lg hover:border-purple-400">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs font-bold text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/60">MASTER ARENA</span>
+            <span class="text-[11px] text-slate-400 font-mono">₱1.00 Tax</span>
+          </div>
+          <h3 class="text-sm font-black text-white">Up to 500 Stats Limit</h3>
+          <p class="text-xs text-slate-400 mt-1">Wager Limit: ₱10 – ₱50 Max. Experienced card masters.</p>
+        </div>
+
+        <!-- Pro Tier -->
+        <div onclick="selectArenaTier('pro')" id="arenaTierBtn-pro" class="cursor-pointer border border-slate-800 bg-slate-900/60 rounded-2xl p-4 transition shadow-lg hover:border-amber-400">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs font-bold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">PRO CHAMPIONS</span>
+            <span class="text-[11px] text-slate-400 font-mono">₱10.00 Tax</span>
+          </div>
+          <h3 class="text-sm font-black text-white">500+ Stats & Above</h3>
+          <p class="text-xs text-slate-400 mt-1">Wager Limit: ₱100 – ₱1,000 Max. High-stakes showdown.</p>
+        </div>
+
+      </div>
+
+      <!-- Arena Queue Desk -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-lg font-black text-white flex items-center gap-2">
+              <i class="fa-solid fa-chess-board text-indigo-400"></i> Arena Challenger Seats (10 Queue Seats)
+            </h2>
+            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs">
+              <span class="text-emerald-400 font-bold bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-800/60">
+                Rule: Only live players have real bets (>₱0)
+              </span>
+              <span class="text-amber-300 font-mono bg-amber-950/70 px-2 py-0.5 rounded border border-amber-800/60">
+                Rule: Duel allowed only within ±5 of your total stats
+              </span>
+            </div>
+          </div>
+
+          <!-- Refresh & Host Buttons -->
+          <div class="flex items-center gap-3">
+            <button onclick="openHostSeatModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition shadow-lg flex items-center gap-2">
+              <i class="fa-solid fa-chair"></i> Host / Sit in Queue
+            </button>
+
+            <!-- Refresh 0-Bet Seats Button -->
+            <button onclick="refreshArenaQueue()" title="Refresh 0-bet & open seats" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold text-xs transition flex items-center gap-1.5">
+              <i class="fa-solid fa-arrows-rotate"></i>
+              <span>Refresh Open (0-Bet) Seats</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 10 Seat Queue Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3" id="arenaSeatsGrid">
+          <!-- Rendered dynamically by app.js -->
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL 1: HOST SEAT / WAGER DIALOG          -->
+  <!-- ========================================== -->
+  <div id="hostSeatModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-chair text-emerald-400"></i> Take a Battle Arena Seat
+        </h3>
+        <button onclick="closeModal('hostSeatModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Your Selected Tier</label>
+          <input type="text" id="hostTierInput" readonly class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-300 font-mono">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1">Wager Bet Amount (₱ PHP)</label>
+          <input type="number" id="hostBetInput" min="0" max="1000" step="1" value="10" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-emerald-400 font-mono font-bold focus:outline-none focus:border-cyan-400">
+          <p class="text-[11px] text-slate-400 mt-1" id="hostWagerLimitsText">Range allowed: ₱0 - ₱10</p>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] space-y-1">
+          <div class="flex justify-between text-slate-400">
+            <span>Match Platform Tax:</span>
+            <span id="hostTaxText" class="font-mono text-slate-200">₱0.00</span>
+          </div>
+          <div class="flex justify-between text-slate-400">
+            <span>Potential Pot Pool:</span>
+            <span id="hostPotText" class="font-mono text-emerald-400 font-bold">₱20.00</span>
+          </div>
+          <div class="flex justify-between text-slate-400">
+            <span>Your Available Balance:</span>
+            <span id="hostMyBalance" class="font-mono text-slate-200">₱10.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('hostSeatModal')" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 font-bold text-xs">Cancel</button>
+        <button onclick="confirmHostSeat()" class="px-5 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs uppercase tracking-wide">
+          Confirm & Sit In Queue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 2: CASHIER (GCASH DEPOSIT/WITHDRAW)  -->
+  <!-- ========================================== -->
+  <div id="walletModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">GCash Cashier Portal</h3>
+            <p class="text-[11px] text-slate-400">Deposit Credits & GCash Cashouts</p>
+          </div>
+        </div>
+        <button onclick="closeModal('walletModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Current Balance Card -->
+      <div class="bg-gradient-to-r from-emerald-950 to-slate-900 border border-emerald-800/60 p-4 rounded-xl flex items-center justify-between">
+        <div>
+          <span class="text-xs text-slate-400">Available Arena Balance</span>
+          <h2 id="modalWalletBalance" class="text-2xl font-black text-emerald-400 font-mono">₱10.00</h2>
+        </div>
+        <div class="text-right">
+          <span class="text-[11px] text-slate-400 block">Total Approved Deposits:</span>
+          <span id="modalLifetimeDeposits" class="text-xs font-mono font-bold text-cyan-300">₱0.00</span>
+        </div>
+      </div>
+
+      <!-- Cashier Tabs -->
+      <div class="flex border-b border-slate-800 text-xs font-bold">
+        <button onclick="switchCashierTab('deposit')" id="cashierTab-deposit" class="flex-1 py-2 border-b-2 border-emerald-400 text-emerald-400 text-center">
+          Deposit (Min ₱10)
+        </button>
+        <button onclick="switchCashierTab('withdraw')" id="cashierTab-withdraw" class="flex-1 py-2 border-b-2 border-transparent text-slate-400 hover:text-white text-center">
+          Withdraw (Min ₱10 • Requires ≥₱20 Deposit)
+        </button>
+      </div>
+
+      <!-- DEPOSIT PANE -->
+      <div id="cashierPane-deposit" class="space-y-4 text-xs">
+        <div class="bg-blue-950/60 border border-blue-800/80 rounded-xl p-3 text-slate-300 text-xs space-y-1">
+          <div class="flex items-center gap-1.5 font-bold text-cyan-300">
+            <i class="fa-solid fa-mobile-screen"></i> GCash Transfer Instructions:
+          </div>
+          <p>Send deposit amount (Minimum ₱10) to authorized GCash number:</p>
+          <div class="flex items-center justify-between bg-slate-950 p-2 rounded border border-slate-800 font-mono text-sm text-amber-400 font-bold">
+            <span>09952533453</span>
+            <span class="text-[10px] text-slate-400 font-normal">Aura Duel Cashier</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Enter full details and attach screenshot for admin approval.</p>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Your Full Sender Name</label>
+          <input type="text" id="depositSenderNameInput" placeholder="e.g. Juan Dela Cruz" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Deposit Amount (₱, Minimum ₱10)</label>
+          <input type="number" id="depositAmountInput" min="10" placeholder="Minimum 10 PHP" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">GCash Reference No. / Ref ID</label>
+          <input type="text" id="depositRefInput" placeholder="e.g. 100293849182" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Screenshot Proof Attachment</label>
+          <div class="border-2 border-dashed border-slate-700 rounded-xl p-3 text-center cursor-pointer hover:border-slate-500 bg-slate-950" onclick="document.getElementById('depositScreenshotFile').click()">
+            <i class="fa-solid fa-image text-slate-400 text-xl mb-1"></i>
+            <p id="screenshotFileName" class="text-xs text-slate-400">Click to upload deposit screenshot receipt</p>
+            <input type="file" id="depositScreenshotFile" accept="image/*" class="hidden" onchange="handleScreenshotUpload(event)">
+          </div>
+        </div>
+
+        <button onclick="submitDepositSlip()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-wider text-xs transition shadow-lg shadow-emerald-950">
+          Submit Deposit for Approval
+        </button>
+      </div>
+
+      <!-- WITHDRAW PANE -->
+      <div id="cashierPane-withdraw" class="hidden space-y-4 text-xs">
+        
+        <!-- Requirement Notice -->
+        <div id="withdrawEligibilityBanner" class="p-3 rounded-xl border text-xs"></div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Withdraw Amount (₱, Minimum ₱10)</label>
+          <input type="number" id="withdrawAmountInput" min="10" placeholder="e.g. 50" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Your GCash Account Mobile Number</label>
+          <input type="text" id="withdrawNumberInput" placeholder="09xxxxxxxxx" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">GCash Account Full Name</label>
+          <input type="text" id="withdrawNameInput" placeholder="Account Registered Name" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <button onclick="submitWithdrawRequest()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black uppercase tracking-wider text-xs transition shadow-lg shadow-purple-950">
+          Request GCash Cashout
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 3: ADMIN PANEL (PASSWORD: Propetas12)-->
+  <!-- ========================================== -->
+  <div id="adminModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-lock text-amber-400 text-lg"></i>
+          <div>
+            <h3 class="font-bold text-white text-base">Admin Management Portal</h3>
+            <p class="text-[11px] text-slate-400">Authorize Deposit Slips & Cashout Requests</p>
+          </div>
+        </div>
+        <button onclick="closeModal('adminModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Password Lock Screen -->
+      <div id="adminLockScreen" class="py-8 text-center space-y-3">
+        <i class="fa-solid fa-shield-cat text-4xl text-amber-400 mb-2"></i>
+        <h4 class="text-sm font-bold text-white">Enter System Administrator Key</h4>
+        <div class="max-w-xs mx-auto flex gap-2">
+          <input type="password" id="adminPasswordInput" placeholder="Enter password..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
+          <button onclick="authenticateAdmin()" class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs">
+            Unlock
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-500 font-mono">Master Checkpoint</p>
+      </div>
+
+      <!-- Admin Dashboard Content (Unlocked) -->
+      <div id="adminDashboardScreen" class="hidden space-y-4">
+        
+        <div class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="font-bold text-slate-200">Admin Session Authorized</span>
+          </div>
+          <button onclick="logoutAdmin()" class="text-xs text-red-400 hover:underline">Lock Session</button>
+        </div>
+
+        <!-- Pending Deposits -->
+        <div>
+          <h4 class="text-xs font-black text-emerald-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <span>Pending GCash Deposits (Complete Details)</span>
+            <span id="pendingDepositsCount" class="text-[11px] font-mono text-slate-400">0 requests</span>
+          </h4>
+          <div id="adminDepositsList" class="space-y-2 max-h-56 overflow-y-auto">
+            <!-- Dynamically rendered -->
+          </div>
+        </div>
+
+        <!-- Pending Withdrawals -->
+        <div class="border-t border-slate-800 pt-3">
+          <h4 class="text-xs font-black text-purple-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <span>Pending GCash Withdrawals</span>
+            <span id="pendingWithdrawalsCount" class="text-[11px] font-mono text-slate-400">0 requests</span>
+          </h4>
+          <div id="adminWithdrawalsList" class="space-y-2 max-h-48 overflow-y-auto">
+            <!-- Dynamically rendered -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- APPLICATION JAVASCRIPT ENGINE -->
+  <script src="app.js"></script>
+</body>
+</html>
